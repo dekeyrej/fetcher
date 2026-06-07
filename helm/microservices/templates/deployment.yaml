@@ -1,7 +1,8 @@
-{{- /* Deploy top-level apps (excluding transformers object) */ -}}
-{{- $root := . -}}
-{{- range $name, $app := .Values.apps -}}
-  {{- if and $app.enabled (ne $name "transformers") }}
+{{/* Deploy top-level apps (excluding transformers object) */}}
+{{ $root := . }}
+{{ range $name, $app := .Values.apps }}
+{{ if and $app.enabled (ne $name "transformers") }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,8 +20,7 @@ spec:
       labels:
         app: {{ $name }}
         environment: {{ $root.Values.env }}
-    spec:
-      {{- if $app.requiresRedis }}
+    spec: {{ if $app.requiresRedis }}
       initContainers:
         - name: wait-for-redis
           image: redis:7
@@ -45,60 +45,57 @@ spec:
                 echo "waiting for prod redis..."
                 sleep 2
               done
-        {{- end }}
-      {{- end }}
+        {{- end -}}{{- end }}
       containers:
         - name: {{ $name }}
           image: {{ printf "%s:%s" $app.image.repository (default $root.Values.env $app.image.tag) }}
           imagePullPolicy: Always
-          {{- if $app.env }}
+{{- if $app.env }}
           env:
             {{- range $e := $app.env }}
             - name: {{ $e.name }}
               value: {{ $e.value | quote }}
             {{- end }}
-          {{- end }}
-          {{- if $app.port }}
+{{- end }}
+{{- if $app.port }}
           ports:
             - containerPort: {{ $app.port }}
-          {{- end }}
-          {{- if $app.volumeMounts }}
+{{- end }}
+{{- if $app.volumeMounts }}
           volumeMounts:
-            {{- range $vm := $app.volumeMounts }}
+            {{ range $vm := $app.volumeMounts }}
             - name: {{ $vm.name }}
               mountPath: {{ $vm.mountPath }}
-              {{- if $vm.subPath }}
+              {{ if $vm.subPath }}
               subPath: {{ $vm.subPath }}
-              {{- end }}
-            {{- end }}
-          {{- end }}
-          {{- if $app.resources }}
+              {{ end }}
+            {{ end }}
+{{- end }}
+{{- if $app.resources }}
           resources:
-            {{ toYaml $app.resources | indent 12 }}
-          {{- end }}
-
-      {{- if $root.Values.imagePullSecrets }}
+{{- toYaml $app.resources | nindent 12 }}
+{{- end }}
+{{- if $root.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range $s := $root.Values.imagePullSecrets }}
         - name: {{ $s.name }}
         {{- end }}
-      {{- end }}
-
-      {{- if $app.volumes }}
+{{- end }}
+{{- if $app.volumes }}
       volumes:
         {{- range $v := $app.volumes }}
         - name: {{ $v.name }}
           configMap:
             name: {{ $v.configMap }}
         {{- end }}
-      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-  {{- end -}}
-{{- end -}}
-
-{{- /* Deploy transformers nested under apps.transformers */ -}}
-{{- range $tname, $t := .Values.apps.transformers }}
-  {{- if $t.enabled }}
+{{/* Deploy transformers nested under apps.transformers */}}
+{{ range $tname, $t := .Values.apps.transformers }}
+{{ if $t.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -133,18 +130,18 @@ spec:
         - name: transformer-{{ $tname }}
           image: {{ printf "%s:%s" $t.image.repository (default $root.Values.env $t.image.tag) }}
           imagePullPolicy: Always
-          {{- if $t.env }}
+{{- if $t.env }}
           env:
             {{- range $e := $t.env }}
             - name: {{ $e.name }}
               value: {{ $e.value | quote }}
             {{- end }}
-          {{- end }}
-          {{- if $t.port }}
+{{- end }}
+{{- if $t.port }}
           ports:
             - containerPort: {{ $t.port }}
-          {{- end }}
-          {{- if $t.volumeMounts }}
+{{- end }}
+{{- if $t.volumeMounts }}
           volumeMounts:
             {{- range $vm := $t.volumeMounts }}
             - name: {{ $vm.name }}
@@ -153,26 +150,26 @@ spec:
               subPath: {{ $vm.subPath }}
               {{- end }}
             {{- end }}
-          {{- end }}
-          {{- if $t.resources }}
+{{- end }}
+{{- if $t.resources }}
           resources:
-            {{ toYaml $t.resources | indent 12 }}
-          {{- end }}
+{{ toYaml $t.resources | nindent 12 }}
+{{- end }}
 
-      {{- if $root.Values.imagePullSecrets }}
+{{- if $root.Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- range $s := $root.Values.imagePullSecrets }}
+        {{ range $s := $root.Values.imagePullSecrets }}
         - name: {{ $s.name }}
-        {{- end }}
-      {{- end }}
+        {{ end }}
+{{- end }}
 
-      {{- if $t.volumes }}
+{{- if $t.volumes }}
       volumes:
         {{- range $v := $t.volumes }}
         - name: {{ $v.name }}
           configMap:
             name: {{ $v.configMap }}
         {{- end }}
-      {{- end }}
-  {{- end }}
 {{- end }}
+{{ end }}
+{{ end }}

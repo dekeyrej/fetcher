@@ -1,6 +1,7 @@
-{{- $root := . -}}
-{{- range $name, $app := .Values.apps -}}
-  {{- if and $app.enabled $app.port }}
+{{ $root := . }}
+{{ range $name, $app := .Values.apps }}
+{{ if and $app.enabled $app.port }}
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -17,12 +18,13 @@ spec:
       name: http
   selector:
     app: {{ $name }}
-  {{- end }}
-{{- end }}
+{{ end }}
+{{ end }}
 
 {{- /* transformers typically don't expose services; add if port specified */ -}}
-{{- range $tname, $t := .Values.apps.transformers }}
-  {{- if and $t.enabled $t.port }}
+{{ range $tname, $t := .Values.apps.transformers }}
+{{ if and $t.enabled $t.port }}
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -39,5 +41,5 @@ spec:
       name: http
   selector:
     app: transformer-{{ $tname }}
-  {{- end }}
-{{- end }}
+{{ end }}
+{{ end }}
