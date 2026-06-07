@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: garmin
+  namespace: default
+  labels:
+    k8s-app: garmin
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      k8s-app: garmin
+  template:
+    metadata:
+      name: garmin
+      labels:
+        k8s-app: garmin
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: garmin
+          image: ghcr.io/dekeyrej/garmin:dev
+          imagePullPolicy: Always
+          env:
+            - name: USER_PASS
+              value: "transf:transf"
+            - name: IN_CHANNEL
+              value: raw
+            - name: OUT_CHANNEL
+              value: update
+            - name: TIMEZONE
+              value: America/New_York
+            - name: LIVENESS_PORT
+              value: "10255"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          ports:
+            - containerPort: 10255
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 10255
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+      imagePullSecrets:
+        - name: ghcr-login-secret

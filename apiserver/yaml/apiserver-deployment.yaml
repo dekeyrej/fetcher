@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apiserver
+  namespace: default
+  labels:
+    k8s-app: apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: apiserver
+  template:
+    metadata:
+      name: apiserver
+      labels:
+        k8s-app: apiserver
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: apiserver
+          image: ghcr.io/dekeyrej/apiserver:dev
+          imagePullPolicy: Always
+          env:
+            - name: USER_PASS
+              value: "apiserver:apiserver"
+            - name: IN_CHANNEL
+              value: update
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+      imagePullSecrets:
+        - name: ghcr-login-secret

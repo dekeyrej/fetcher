@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: repeater
+  namespace: default
+  labels:
+    k8s-app: repeater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: repeater
+  template:
+    metadata:
+      name: repeater
+      labels:
+        k8s-app: repeater
+    spec:
+      initContainers:
+        - name: wait-for-local-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+        - name: wait-for-prod-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.pjis.net -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: repeater
+          image: ghcr.io/dekeyrej/repeater:dev
+          imagePullPolicy: Always
+          env:
+            - name: USER_PASS
+              value: "fetch:fetch"
+            - name: PROD_USER_PASS
+              value: "repeat:repeat"
+            - name: PROD_HOST_PORT_DB
+              value: "redis.pjis.net:6379/0"
+            - name: IN_CHANNEL
+              value: raw
+            - name: OUT_CHANNEL
+              value: raw
+            - name: LIVENESS_PORT
+              value: "10255"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          ports:
+            - containerPort: 10255
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 10255
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+      imagePullSecrets:
+        - name: ghcr-login-secret

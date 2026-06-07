@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kv-updater-raw
+  namespace: default
+  labels:
+    k8s-app: kv-updater-raw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: kv-updater-raw
+  template:
+    metadata:
+      name: kv-updater-raw
+      labels:
+        k8s-app: kv-updater-raw
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: kv-updater-raw
+          image: ghcr.io/dekeyrej/kv-updater:dev
+          imagePullPolicy: Always
+          env:
+            - name: IN_CHANNEL
+              value: raw
+            - name: USER_PASS
+              value: "kvraw:kvraw"
+            - name: LIVENESS_PORT
+              value: "10255"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          ports:
+            - containerPort: 10255
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 10255
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+      imagePullSecrets:
+        - name: ghcr-login-secret
+

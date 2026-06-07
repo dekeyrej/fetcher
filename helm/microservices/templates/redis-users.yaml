@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-users
+  namespace: redis
+data:
+  users.acl: |-
+    user default   on nopass     +@all                       ~*                   +@pubsub &*
+    user fetch     on >fetch     +info +ping +@write +@read  ~period:* ~raw:types +publish &raw
+    user repeat    on >repeat          +ping         +@read            ~raw:*                      +subscribe +unsubscribe &raw
+    user transf    on >transf    +info +ping         +@read            ~raw:*     +publish &update +subscribe +unsubscribe &raw
+    user dtransf   on >dtransf   +info +ping +@write +@read  ~period:* ~raw:*     +publish &update +subscribe +unsubscribe &raw
+    user kvraw     on >kvraw     +info +ping +@write                   ~raw:*                      +subscribe +unsubscribe &raw
+    user kvupdate  on >kvupdate  +info +ping +@write                   ~update:*                   +subscribe +unsubscribe &update
+    user apiserver on >apiserver +info +ping         +@read            ~update:*                   +subscribe +unsubscribe &update

@@ -1,0 +1,11 @@
+[project]
+name = "transformers"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "arrow>=1.4.0",
+    "orjson>=3.11.9",
+    "redis>=8.0.0",
+]

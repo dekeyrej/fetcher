@@ -1,0 +1,16 @@
+---
+# for prod
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-lb
+  namespace: redis
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.86.98 # redis.pjis.net
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis

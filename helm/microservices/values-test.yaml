@@ -1,0 +1,24 @@
+env: test
+
+apps:
+  fetcher:
+    enabled: false
+  repeater:
+    enabled: true
+  webdisplay:
+    env:
+      - name: REACT_APP_API_URL
+        value: "http://theoden.pjis.net/api"
+ingress:
+  apiserver:
+    host: theoden.pjis.net
+  webdisplay:
+    host: theoden.pjis.net
+  dashboard:
+    host: testdashboard.pjis.net
+
+# test-specific redis overrides
+redis:
+  host: redis.redis
+  image: "redis:7.4-alpine"
+  storageClassName: microk8s-hostpath

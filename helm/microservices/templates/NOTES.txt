@@ -1,0 +1,22 @@
+Thank you for installing the microservices umbrella chart.
+
+To install for dev (uses values-dev.yaml):
+
+  helm install my-release ./microservices -f values-dev.yaml
+
+To install for test:
+
+  helm install my-release ./microservices -f values-test.yaml
+
+To install for prod:
+
+  helm install my-release ./microservices -f values-prod.yaml
+
+You can also override single apps, for example to enable fetcher in prod:
+
+  helm install my-release ./microservices -f values-prod.yaml --set apps.fetcher.image=ghcr.io/your/fetcher:tag
+
+Notes:
+- `matrix-events` is rendered in all environments.
+- `scheduler` and the `secretcfg` / `secretdef` ConfigMaps are rendered only in `prod`.
+- Redis resources (namespace, config, users, statefulset) are included. For prod a LoadBalancer service is created using `values.redis.loadBalancerIP`.

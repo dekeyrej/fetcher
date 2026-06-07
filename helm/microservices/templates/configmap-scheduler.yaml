@@ -1,0 +1,38 @@
+{{- if eq .Values.env "prod" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler
+  labels:
+    app: scheduler
+data:
+  scheduler.yaml: |-
+    AQI:
+      slot: 5
+      period: 900
+    Moon: 
+      slot: 10
+      period: 3600
+    Weather:
+      slot: 15
+      period: 900
+    MLB:
+      slot: 0  # and 20 and 40
+      period: 20
+    # Track:  # the URL has been changed, not sure to what???  # not yet implemented
+    #   urls: https://inreach.garmin.com/Feed/Share/{{ trackee }}
+    #   slot: 25
+    #   period: 600
+    NFL: # works (better than previous, but could still be more efficient)
+      slot: 30
+      period: 60
+    Calendar:
+      slot: 45
+      period: 900
+    # GitHub:  # not yet implemented
+    #   slot: 50
+    #   period: 600
+    Events:
+      slot: 55
+      period: 600
+{{- end }}

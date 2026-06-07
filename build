@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+cd builder
+uv run builder.py

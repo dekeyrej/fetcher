@@ -1,0 +1,1 @@
+ tar -cJf ../fetcher.tar.xz --exclude='*/.venv' --exclude='*/__pycache__' --exclude='*/.git'  --exclude='*/uv.lock' *

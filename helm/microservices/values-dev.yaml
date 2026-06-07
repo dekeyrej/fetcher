@@ -1,0 +1,24 @@
+env: dev
+
+apps:
+  fetcher:
+    enabled: false
+  repeater:
+    enabled: true
+  webdisplay:
+    env:
+      - name: REACT_APP_API_URL
+        value: "http://samwise.pjis.net/api"
+ingress:
+  apiserver:
+    host: samwise.pjis.net
+  webdisplay:
+    host: samwise.pjis.net
+  dashboard:
+    host: devdashboard.pjis.net
+  
+# dev-specific redis overrides
+redis:
+  host: redis.redis
+  image: "redis:7.4-alpine"
+  storageClassName: longhorn

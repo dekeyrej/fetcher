@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fetcher
+  namespace: default
+  labels:
+    k8s-app: fetcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: fetcher
+  template:
+    metadata:
+      name: fetcher
+      labels:
+        k8s-app: fetcher
+    spec:
+      initContainers:
+        - name: wait-for-local-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: fetcher
+          image: ghcr.io/dekeyrej/fetcher:dev
+          imagePullPolicy: Always
+          env:
+            - name: USER_PASS
+              value: "fetch:fetch"
+            - name: OUT_CHANNEL
+              value: raw
+            - name: TIMEZONE
+              value: America/New_York
+            - name: LIVENESS_PORT
+              value: "10255"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          ports:
+            - containerPort: 10255
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 10255
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: secretcfg-volume
+              mountPath: /code/secretcfg.json
+              subPath: secretcfg.json
+            - name: secretdef-volume
+              mountPath: /code/secretdef.json
+              subPath: secretdef.json
+            - name: scheduler-volume
+              mountPath: /code/scheduler.yaml
+              subPath: scheduler.yaml
+          securityContext:
+            privileged: false
+      volumes:
+        - name: secretcfg-volume
+          configMap:
+            name: secretcfg
+        - name: secretdef-volume
+          configMap:
+            name: secretdef
+        - name: scheduler-volume
+          configMap:
+            name: scheduler
+      imagePullSecrets:
+        - name: ghcr-login-secret

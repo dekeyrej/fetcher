@@ -1,0 +1,2 @@
+# Transformers
+Formerly known as 'microservices' in previous architectural iterations, the fetching of the raw data from various sources has been removed and consolidated in [`fethcer`](../fetcher/README.md). The remaining (heavily refactored) transformers are subclassed from [`MicroService`](../shared/microservice.py) and overrides MicroService's abstract `update` method, with `MicroService` being subclassed from `RedisClient` which handles connecting to Redis, subscribing to the `raw` channel, and publishing to the `update` channel.

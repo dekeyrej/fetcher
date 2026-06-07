@@ -1,0 +1,13 @@
+[project]
+name = "apiserver"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.3",
+    "orjson>=3.11.9",
+    "redis>=8.0.0",
+    "sse-starlette>=3.4.4",
+    "uvicorn>=0.48.0",
+]

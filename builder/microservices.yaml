@@ -1,0 +1,12 @@
+# microservice: application
+apiserver: apiserver
+fetcher: fetcher
+repeater: repeater
+kv-updater: kv-updater
+aqi: transformers
+events: transformers
+mlb: transformers
+moon: transformers
+mycal: transformers
+nfl: transformers
+weather: transformers

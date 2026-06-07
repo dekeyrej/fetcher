@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webdisplay
+  namespace: default
+  labels:
+    k8s-app: webdisplay
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: webdisplay
+  template:
+    metadata:
+      name: webdisplay
+      labels:
+        k8s-app: webdisplay
+    spec:
+      containers:
+      - name: webdisplay
+        image: ghcr.io/dekeyrej/nodewebdisplay:latest
+        imagePullPolicy: Always
+        env:
+          - name: REACT_APP_API_URL
+            value: http://theoden.pjis.net/api
+        resources:
+            requests:
+              cpu: 10m
+              memory: 512Mi
+            limits:
+              cpu: 100m
+              memory: 1Gi
+      imagePullSecrets:
+        - name: ghcr-login-secret

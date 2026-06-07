@@ -1,0 +1,24 @@
+env: prod
+
+apps:
+  fetcher:
+    enabled: true
+  repeater:
+    enabled: false
+  webdisplay:
+    env:
+      - name: REACT_APP_API_URL
+        value: "http://aragorn.pjis.net/api"
+ingress:
+  apiserver:
+    host: aragorn.pjis.net
+  webdisplay:
+    host: aragorn.pjis.net
+  dashboard:
+    host: dashboard.pjis.net
+
+# prod-specific redis overrides
+redis:
+  host: redis.redis
+  image: "redis:7.4-alpine"
+  storageClassName: microk8s-hostpath

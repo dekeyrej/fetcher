@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfl
+  namespace: default
+  labels:
+    k8s-app: nfl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: nfl
+  template:
+    metadata:
+      name: nfl
+      labels:
+        k8s-app: nfl
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.redis -p 6379 ping | grep -q PONG; do
+                echo "waiting for redis..."
+                sleep 2
+              done
+      containers:
+        - name: nfl
+          image: ghcr.io/dekeyrej/nfl:dev
+          imagePullPolicy: Always
+          env:
+            - name: USER_PASS
+              value: "dtransf:dtransf"
+            - name: IN_CHANNEL
+              value: raw
+            - name: OUT_CHANNEL
+              value: update
+            - name: TIMEZONE
+              value: America/New_York
+            - name: LIVENESS_PORT
+              value: "10255"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          ports:
+            - containerPort: 10255
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 10255
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            privileged: false
+      imagePullSecrets:
+        - name: ghcr-login-secret

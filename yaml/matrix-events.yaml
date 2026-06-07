@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matrix-events
+  namespace: default
+data:
+  events.json: |-
+    [
+        {"event" : "Birthday",   "name" : "Barbara",        "month" : 1, "day" : 26,"year" : 1936},
+        {"event" : "Birthday",   "name" : "Ryan",           "month" : 2, "day" : 26,"year" : 1976},
+        {"event" : "Birthday",   "name" : "Bud",            "month" : 3, "day" : 19,"year" : 1936},
+        {"event" : "Birthday",   "name" : "Blue & Rozsi",   "month" : 4, "day" : 19,"year" : 2020},
+        {"event" : "Birthday",   "name" : "Cindy",          "month" : 4, "day" : 23,"year" : 1964},
+        {"event" : "Birthday",   "name" : "Ron",            "month" : 6, "day" : 3, "year" : 1949},
+        {"event" : "Birthday",   "name" : "Joe",            "month" : 8, "day" : 8, "year" : 1964},
+        {"event" : "Birthday",   "name" : "Charlotte",      "month" : 9, "day" : 21,"year" : 1991},
+        {"event" : "Birthday",   "name" : "Ashton",         "month" : 10,"day" : 12,"year" : 1987},
+        {"event" : "Birthday",   "name" : "Logan",          "month" : 11,"day" : 4, "year" : 1988},
+        {"event" : "Birthday",   "name" : "Hartley",        "month" : 11,"day" : 16,"year" : 2022},
+        {"event" : "Birthday",   "name" : "Jill",           "month" : 11,"day" : 18,"year" : 1951},
+        {"event" : "Birthday",   "name" : "Victor",         "month" : 12,"day" : 10,"year" : 2018},
+        {"event" : "Birthday",   "name" : "Izzy",           "month" : 12,"day" : 29,"year" : 2012},
+        {"event" : "Anniversary","name" : "Ashy & Ryan",    "month" : 12,"day" : 8, "year" : 2018},
+        {"event" : "Anniversary","name" : "Jill & Ron",     "month" : 12,"day" : 8, "year" : 1973},
+        {"event" : "Anniversary","name" : "Char & Logan",   "month" : 5, "day" : 28,"year" : 2022},
+        {"event" : "Anniversary","name" : "Cindy & Joe",    "month" : 7, "day" : 12,"year" : 1986}
+    ]

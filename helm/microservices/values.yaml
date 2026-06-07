@@ -1,0 +1,319 @@
+env: dev
+
+# global image pull secrets and defaults
+imagePullSecrets:
+  - name: ghcr-login-secret
+
+redis:
+  # default redis host (can be overridden per-env in values-<env>.yaml)
+  host: redis.redis
+  # loadBalancerIP used for prod LoadBalancer service
+  loadBalancerIP: "192.168.86.98"
+  # create namespace for redis (true by default)
+  createNamespace: true
+  # image (full image:tag) to use for redis pods; overridable per-environment
+  image: "redis:7.4-alpine"
+  # storageClassName used for redis PVC; default for prod/test is microk8s-hostpath
+  storageClassName: microk8s-hostpath
+  # external host name for the prod loadbalanced redis (used by cross-cluster access)
+  externalHost: "redis.pjis.net"
+
+apps:
+  apiserver:
+    enabled: true
+    image:
+      repository: ghcr.io/dekeyrej/apiserver
+      tag: ""
+    replicas: 1
+    port: 8000
+    requiresRedis: true
+    env:
+      - name: USER_PASS
+        value: "apiserver:apiserver"
+      - name: IN_CHANNEL
+        value: update
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 256Mi
+
+  kv-updater-raw:
+    enabled: true
+    image:
+      repository: ghcr.io/dekeyrej/kv-updater
+      tag: ""
+    replicas: 1
+    port: 10255
+    requiresRedis: true
+    env:
+      - name: IN_CHANNEL
+        value: raw
+      - name: USER_PASS
+        value: "kvraw:kvraw"
+      - name: LIVENESS_PORT
+        value: "10255"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+  kv-updater-update:
+    enabled: true
+    image:
+      repository: ghcr.io/dekeyrej/kv-updater
+      tag: ""
+    replicas: 1
+    port: 10255
+    requiresRedis: true
+    env:
+      - name: IN_CHANNEL
+        value: update
+      - name: USER_PASS
+        value: "kvupdate:kvupdate"
+      - name: LIVENESS_PORT
+        value: "10255"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+  webdisplay:
+    enabled: true
+    image:
+      repository: ghcr.io/dekeyrej/nodewebdisplay
+      tag: ""
+    replicas: 1
+    port: 3001
+    requiresRedis: false
+    env:
+      - name: REACT_APP_API_URL
+        value: "http://aragorn.pjis.net/api"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 512Mi
+      limits:
+        cpu: 100m
+        memory: 1Gi
+
+  transformers:
+    aqi:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/aqi
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "transf:transf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+    events:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/events
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "transf:transf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+      volumes:
+        - name: events
+          configMap: matrix-events
+      volumeMounts:
+        - name: events
+          mountPath: /code/events.json
+          subPath: events.json
+    mlb:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/mlb
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "dtransf:dtransf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+    moon:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/moon
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "transf:transf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+    mycal:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/mycal
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "transf:transf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+    nfl:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/nfl
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "dtransf:dtransf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+    weather:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/weather
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "transf:transf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
+
+  fetcher:
+    enabled: false
+    image:
+      repository: ghcr.io/dekeyrej/fetcher
+      tag: ""
+    replicas: 1
+    port: 10255
+    requiresRedis: true
+    env:
+      - name: USER_PASS
+        value: "fetch:fetch"
+      - name: OUT_CHANNEL
+        value: raw
+      - name: TIMEZONE
+        value: America/New_York
+      - name: LIVENESS_PORT
+        value: "10255"
+    volumeMounts:
+      - name: secretcfg-volume
+        mountPath: /code/secretcfg.json
+        subPath: secretcfg.json
+      - name: secretdef-volume
+        mountPath: /code/secretdef.json
+        subPath: secretdef.json
+      - name: scheduler-volume
+        mountPath: /code/scheduler.yaml
+        subPath: scheduler.yaml
+    volumes:
+      - name: secretcfg-volume
+        configMap: secretcfg
+      - name: secretdef-volume
+        configMap: secretdef
+      - name: scheduler-volume
+        configMap: scheduler
+
+  repeater:
+    enabled: false
+    image:
+      repository: ghcr.io/dekeyrej/repeater
+      tag: ""
+    replicas: 1
+    port: 10255
+    requiresRedis: true
+    env:
+      - name: USER_PASS
+        value: "fetch:fetch"
+      - name: PROD_USER_PASS
+        value: "repeat:repeat"
+      - name: PROD_HOST_PORT_DB
+        value: "redis.pjis.net:6379/0"
+      - name: IN_CHANNEL
+        value: raw
+      - name: OUT_CHANNEL
+        value: raw
+      - name: LIVENESS_PORT
+        value: "10255"
+
+ingress:
+  className: nginx
+  apiserver:
+    host: ""
+    path: "/api(/|$)(.*)"
+    rewrite: "/$2"
+  webdisplay:
+    host: ""
+    path: "/"
+  dashboard:
+    host: ""
+    serviceName: dashboard
+    port: 80
