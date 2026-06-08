@@ -11,27 +11,6 @@ from redis import Redis
 
 from liveness import start_liveness_probe
 
-# class HealthHandler(BaseHTTPRequestHandler):
-#     def do_GET(self):
-#         if self.path == '/live':
-#             self.send_response(200)
-#             self.end_headers()
-#             self.wfile.write(b'{"status":"alive"}')
-#         else:
-#             self.send_response(404)
-#             self.end_headers()
-
-# def start_liveness_probe():
-#     port = int(os.getenv('LIVENESS_PORT', 0))
-#     if port > 0:
-#         """Start a simple HTTP liveness probe on the given port."""
-#         server = HTTPServer(('0.0.0.0', port), HealthHandler)
-#         thread = threading.Thread(target=server.serve_forever, daemon=True)
-#         thread.start()
-#         logging.info(f"Liveness probe running on port {port}.")
-#     else:
-#         logging.info("LIVENESS_PORT not set or invalid. Liveness probe not started.")
-
 class RedisClient(ABC):
     def __init__(self, redis_url: str = None, prod: bool = False) -> None:
         self.client = self.connect_redis(redis_url)

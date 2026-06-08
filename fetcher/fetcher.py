@@ -131,6 +131,4 @@ class Fetcher(RedisClient):
 if __name__ == "__main__":
     import asyncio
 
-    # fetcher = Fetcher(log_level='INFO')
-    # asyncio.run(fetcher.run())
     asyncio.run(Fetcher(log_level='INFO').run())

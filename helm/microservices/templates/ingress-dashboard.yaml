@@ -1,6 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+{{- if eq .Values.env "prod" }}
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  namespace: kube-system
+{{- end }}
   name: {{ include "microservices.fullname" (dict "Release" .Release "Name" "dashboard-ingress") }}
   labels:
     app: dashboard

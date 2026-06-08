@@ -1,3 +1,8 @@
+# ToDo:
+# - add argparse for tag, all-tags, build-all, repository
+# - expand changed file selection to include .toml, and top-level Dockerfile
+
+
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 import os
@@ -99,5 +104,5 @@ class Builder:
 
 if __name__ == "__main__":
     repository="ghcr.io/dekeyrej"
-    tag="dev"
+    tag="prod"
     builder = Builder(repository, tag).run()

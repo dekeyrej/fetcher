@@ -63,13 +63,13 @@ spec:
 {{- end }}
 {{- if $app.volumeMounts }}
           volumeMounts:
-            {{ range $vm := $app.volumeMounts }}
+            {{- range $vm := $app.volumeMounts }}
             - name: {{ $vm.name }}
               mountPath: {{ $vm.mountPath }}
-              {{ if $vm.subPath }}
+              {{- if $vm.subPath }}
               subPath: {{ $vm.subPath }}
-              {{ end }}
-            {{ end }}
+              {{- end }}
+            {{- end }}
 {{- end }}
 {{- if $app.resources }}
           resources:

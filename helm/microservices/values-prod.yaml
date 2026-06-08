@@ -6,6 +6,8 @@ apps:
   repeater:
     enabled: false
   webdisplay:
+    image:
+      tag: latest
     env:
       - name: REACT_APP_API_URL
         value: "http://aragorn.pjis.net/api"
@@ -16,6 +18,8 @@ ingress:
     host: aragorn.pjis.net
   dashboard:
     host: dashboard.pjis.net
+    serviceName: kubernetes-dashboard
+    port: 443
 
 # prod-specific redis overrides
 redis:

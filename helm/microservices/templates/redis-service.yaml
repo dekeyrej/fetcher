@@ -1,30 +1,18 @@
-{{- if ne .Values.env "prod" }}
 apiVersion: v1
 kind: Service
 metadata:
   name: redis
   namespace: redis
 spec:
+{{- if ne .Values.env "prod" }}
   clusterIP: None
-  ports:
-  - port: 6379
-    targetPort: 6379
-    name: redis
-  selector:
-    app: redis
 {{- else }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-lb
-  namespace: redis
-spec:
   type: LoadBalancer
   loadBalancerIP: {{ .Values.redis.loadBalancerIP | default "192.168.86.98" | quote }}
+{{- end }}
   ports:
   - port: 6379
     targetPort: 6379
     name: redis
   selector:
     app: redis
-{{- end }}
