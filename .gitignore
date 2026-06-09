@@ -4,3 +4,4 @@ secret*
 tests/
 matrix-events.yaml
 last_build.yaml
+fetch

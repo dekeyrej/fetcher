@@ -12,25 +12,27 @@ class Builder:
         self.tags = ["dev", "test", "prod"]
         self.repository = repository
         self.tag = tag
-        with open("dependencies.yaml", "r") as f:
+        with open("dependencies.yaml", "r") as f:  # load reverse-dependencies from dependencies.yaml (we want to know which microservices depend on which files, not the other way around)
             self.dependencies = yaml.safe_load(f)
 
-        with open("microservices.yaml", "r") as f:
+        with open("microservices.yaml", "r") as f: # load microservice:application mapping from microservices.yaml
             self.microservices = yaml.safe_load(f)
 
-        with open("last_build.yaml", "r") as f:
+        with open("last_build.yaml", "r") as f:    # read last build date/time from last_build.yaml
             self.last_build = arrow.get(yaml.safe_load(f)["last_build"])
 
     def find_modified_files(self):
-        # Loop through subdirectories only (not current directory, not sub-subdirectories), 
-        # looking for .py files and check if they have been modified since the last build
+        # Loop through parent directory and its subdirectories only (not sub-subdirectories), 
+        # looking for *.py, *.toml, and Dockerfile files and check if they have been modified since the last build
+        ignores = ["builder", "yaml", "helm", "tests", ".git", "instructions"]
         modified_files = []
         for root, dirs, files in os.walk(".."):
-            if root == "./builder":
+            if any(ignore in root for ignore in ignores):
                 continue
             if root.count(os.sep) > 1:
                 continue
             for file in files:
+                logging.debug(f"{root}, {dirs}, {files}")
                 if file.endswith(".py") or file.endswith(".toml") or file == "Dockerfile":
                     file_path = os.path.join(root, file)
                     if arrow.get(os.path.getmtime(file_path)) > self.last_build:
@@ -52,18 +54,18 @@ class Builder:
     
     def build_microservices(self, builds, repository, tag, all_tags=False):
         successes = 0
-        buildcount = 0
         failures = []
+        
+        context = ".."
+        dockerfile = "../Dockerfile"
+        platforms = ["linux/amd64"]
+
         for build in builds:
-            buildcount += 1
-            app = self.microservices[build]
-            if all_tags:
-                tags = [f"{repository}/{build}:{t}" for t in self.tags]
-            else:
-                tags = f"{repository}/{build}:{tag}"
+            build_args = {"APPLICATION": self.microservices[build], "MICROSERVICE": build}
+            tags = [f"{repository}/{build}:{t}" for t in self.tags] if all_tags else [f"{repository}/{build}:{tag}"]
             try:
-                docker.build(context_path="..", file="../Dockerfile", build_args={"APPLICATION": app, "MICROSERVICE": build}, 
-                             platforms=["linux/amd64"], tags=tags, push=True)
+                docker.build(context_path=context, file=dockerfile, build_args=build_args, 
+                             platforms=platforms, tags=tags, push=True)
             
                 logging.info(f"Built and pushed {repository}/{build}:{tag}")
                 successes += 1
@@ -71,7 +73,8 @@ class Builder:
                 logging.error(f"Failed to build {repository}/{build}:{tag}")
                 logging.error(f"Error details: {e}")
                 failures.append(build)
-                
+
+        buildcount = len(builds)
         if buildcount > 0 and successes == buildcount:
             logging.info("All builds succeeded")
             with open("last_build.yaml", "w") as f:
@@ -103,7 +106,7 @@ class Builder:
             logging.info("Microservices to build:")
             for build in builds:
                 logging.info(build)
-                self.build_microservices(builds, self.repository, tag, all_tags=all_tags)
+            self.build_microservices(builds, self.repository, tag, all_tags=all_tags)
         else:
             logging.info("No microservices need to be built")
 
@@ -112,12 +115,12 @@ if __name__ == "__main__":
     ap.add_argument("--repository", type=str, default="ghcr.io/dekeyrej", help="Docker repository to push images to (default: ghcr.io/dekeyrej)")
     ap.add_argument("--tag", type=str, default="dev", help="Tag to use for the built images (default: dev)")
     ap.add_argument("--all-tags", action="store_true", help="Build and push images for all tags (overrides --tag)")
-    ap.add_argument("--build-all", action="store_true", help="Build and push images for all microservices, regardless of modified files")
+    ap.add_argument("--all-builds", action="store_true", help="Build and push images for all microservices, regardless of modified files")
     args = ap.parse_args()
     
     repository = args.repository
     tag = args.tag
     all_tags = args.all_tags
-    build_all = args.build_all
+    all_builds = args.all_builds
     
-    builder = Builder(repository, tag).run(all_tags=all_tags, build_all=build_all)
+    builder = Builder(repository, tag).run(all_tags=all_tags, build_all=all_builds)
