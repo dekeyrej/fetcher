@@ -4,7 +4,7 @@ metadata:
   name: scheduler
   namespace: default
 data:
-  scheduler.yaml: |
+  scheduler.yaml: |-
     AQI:
       slot: 5
       period: 900
@@ -18,7 +18,7 @@ data:
       slot: 0  # and 20 and 40
       period: 20
     # Track:  # the URL has been changed, not sure to what???  # not yet implemented
-    #   urls: https://inreach.garmin.com/Feed/Share/{{ trackee }}
+    #   urls: https://inreach.garmin.com/Feed/Share/<< trackee >>
     #   slot: 25
     #   period: 600
     NFL: # works (better than previous, but could still be more efficient)

@@ -18,6 +18,7 @@ ingress:
     host: aragorn.pjis.net
   dashboard:
     host: dashboard.pjis.net
+    namespace: kube-system
     serviceName: kubernetes-dashboard
     port: 443
 

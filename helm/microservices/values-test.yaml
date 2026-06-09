@@ -6,6 +6,8 @@ apps:
   repeater:
     enabled: true
   webdisplay:
+    image:
+      tag: latest
     env:
       - name: REACT_APP_API_URL
         value: "http://theoden.pjis.net/api"
@@ -16,9 +18,12 @@ ingress:
     host: theoden.pjis.net
   dashboard:
     host: testdashboard.pjis.net
+    namespace: kubernetes-dashboard
+    serviceName: kubernetes-dashboard-kong-proxy
+    port: 443
 
 # test-specific redis overrides
 redis:
   host: redis.redis
-  image: "redis:7.4-alpine"
+  image: "redis:alpine"
   storageClassName: microk8s-hostpath

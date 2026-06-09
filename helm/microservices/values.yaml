@@ -315,5 +315,6 @@ ingress:
     path: "/"
   dashboard:
     host: ""
+    namespace: default
     serviceName: dashboard
     port: 80

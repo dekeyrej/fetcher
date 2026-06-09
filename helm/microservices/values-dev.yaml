@@ -6,6 +6,8 @@ apps:
   repeater:
     enabled: true
   webdisplay:
+    image:
+      tag: latest
     env:
       - name: REACT_APP_API_URL
         value: "http://samwise.pjis.net/api"
@@ -20,5 +22,5 @@ ingress:
 # dev-specific redis overrides
 redis:
   host: redis.redis
-  image: "redis:7.4-alpine"
+  image: "redis:alpine"
   storageClassName: longhorn

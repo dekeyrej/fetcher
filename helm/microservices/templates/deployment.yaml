@@ -23,7 +23,7 @@ spec:
     spec: {{ if $app.requiresRedis }}
       initContainers:
         - name: wait-for-redis
-          image: redis:7
+          image: redis:alpine
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -35,7 +35,7 @@ spec:
               done
         {{- if eq $name "repeater" }}
         - name: wait-for-prod-redis
-          image: redis:7
+          image: redis:alpine
           imagePullPolicy: IfNotPresent
           command:
             - sh

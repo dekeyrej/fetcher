@@ -1,3 +1,4 @@
+Dockerfile: all
 shared/__init__.py: all
 shared/liveness.py: all
 shared/microservice.py: all
