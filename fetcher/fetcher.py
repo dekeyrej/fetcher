@@ -9,7 +9,7 @@ from redis_lib import RedisClient
 from scheduler     import Scheduler
 from secretmanager import SecretManager
 
-from fetchers import aqi, events, garmin, github, mlb, moon, gcal, nfl, weather
+from fetchers import aqi, events, garmin, github, mlb, moon, gcal, nfl, weather, wc
 
 class Fetcher(RedisClient):
     
@@ -70,7 +70,8 @@ class Fetcher(RedisClient):
             'Track': self.secrets.get('garmin_url', 'https://api.garmin.com/wellness-api/rest/activities'),
             'Weather': f'https://api.openweathermap.org/data/3.0/onecall?appid=' \
                        f'{self.secrets["owmkey"]}&{self.lat_long}' \
-                       f'&exclude=minutely,alerts&units=imperial&lang=en'
+                       f'&exclude=minutely,alerts&units=imperial&lang=en',
+            'WorldCup': 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
         }
         return urls
     
@@ -98,6 +99,8 @@ class Fetcher(RedisClient):
         self.scheduler.update_period('MLB', int(self.rget('period:MLB') or 20))
         # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
         self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
+        # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
+        self.scheduler.update_period('WorldCup', int(self.rget('period:WC') or 60))
         if type == 'AQI':
             rawmessage['values'] = await aqi(self.urls[type], self.timezone)
         elif type == 'Events':
@@ -116,6 +119,8 @@ class Fetcher(RedisClient):
             rawmessage['values'] = await nfl(self.urls[type], self.timezone)  
         elif type == 'Weather':
             rawmessage['values'] = await weather(self.urls[type], self.timezone)
+        elif type == 'WorldCup':
+            rawmessage['values'] = await wc(self.urls[type], self.timezone)
         else:
             logging.error(f"Unknown type: {type}")
 

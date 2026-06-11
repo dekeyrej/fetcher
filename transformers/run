@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+PYTHONPATH=./shared \
+HOST_PORT_DB=redis.pjis.net:6379/0 \
+USER_PASS=dtransf:dtransf \
+IN_CHANNEL=raw \
+OUT_CHANNEL=update \
+uv run ${1}.py

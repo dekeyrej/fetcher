@@ -17,3 +17,4 @@ transformers/moon.py: moon
 transformers/mycal.py: mycal
 transformers/nfl.py: nfl
 transformers/weather.py: weather
+transformers/wc.py: wc

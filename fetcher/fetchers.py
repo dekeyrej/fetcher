@@ -72,3 +72,7 @@ async def weather(url: str, timezone: str) -> dict:  # working
     tnow = arrow.now().to(timezone)
     return await fetch(url,'Fetching Weather data',tnow.format('MM/DD/YYYY hh:mm A ZZZ'))
     
+async def wc(url: str, timezone: str) -> dict:
+    tnow = arrow.now().to(timezone)
+    response = await fetch(url,'Fetching World Cup games',tnow.format('MM/DD/YYYY hh:mm A ZZZ'))
+    return response['events']

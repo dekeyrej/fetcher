@@ -9,4 +9,5 @@ mlb: transformers
 moon: transformers
 mycal: transformers
 nfl: transformers
+wc: transformers
 weather: transformers

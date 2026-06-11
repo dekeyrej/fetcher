@@ -227,6 +227,25 @@ apps:
           value: America/New_York
         - name: LIVENESS_PORT
           value: "10255"
+    wc:
+      enabled: true
+      image:
+        repository: ghcr.io/dekeyrej/wc
+        tag: ""
+      replicas: 1
+      port: 10255
+      requiresRedis: true
+      env:
+        - name: USER_PASS
+          value: "dtransf:dtransf"
+        - name: IN_CHANNEL
+          value: raw
+        - name: OUT_CHANNEL
+          value: update
+        - name: TIMEZONE
+          value: America/New_York
+        - name: LIVENESS_PORT
+          value: "10255"
     weather:
       enabled: true
       image:
