@@ -8,10 +8,11 @@ from python_on_whales import docker, DockerException
 import yaml
 
 class Builder:
-    def __init__(self, repository="ghcr.io/dekeyrej", tag="dev"):
+    def __init__(self, repository="ghcr.io/dekeyrej", tag="dev", build="None"):
         self.tags = ["dev", "test", "prod"]
         self.repository = repository
         self.tag = tag
+        self.build = build
         with open("dependencies.yaml", "r") as f:  # load reverse-dependencies from dependencies.yaml (we want to know which microservices depend on which files, not the other way around)
             self.dependencies = yaml.safe_load(f)
 
@@ -90,6 +91,9 @@ class Builder:
         if build_all:
             logging.info("Building all microservices due to --build-all flag")
             builds = set(self.microservices.keys())
+        elif self.build != "None":
+            logging.info(f"Building specified microservice: {self.build}")
+            builds = {self.build}
         else:
             modified_files = self.find_modified_files()
             if not modified_files:
@@ -99,7 +103,6 @@ class Builder:
                 logging.info("Modified files since last build:")
                 for file in modified_files:
                     logging.info(file)
-
             builds = self.determine_builds(modified_files)
             
         if builds:
@@ -114,13 +117,15 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Build and push Docker images for modified microservices")
     ap.add_argument("--repository", type=str, default="ghcr.io/dekeyrej", help="Docker repository to push images to (default: ghcr.io/dekeyrej)")
     ap.add_argument("--tag", type=str, default="dev", help="Tag to use for the built images (default: dev)")
+    ap.add_argument("--build", type=str, default="None", help="Build execute (default: None)")
     ap.add_argument("--all-tags", action="store_true", help="Build and push images for all tags (overrides --tag)")
     ap.add_argument("--all-builds", action="store_true", help="Build and push images for all microservices, regardless of modified files")
     args = ap.parse_args()
     
     repository = args.repository
     tag = args.tag
+    build = args.build
     all_tags = args.all_tags
     all_builds = args.all_builds
     
-    builder = Builder(repository, tag).run(all_tags=all_tags, build_all=all_builds)
+    builder = Builder(repository, tag, build).run(all_tags=all_tags, build_all=all_builds)

@@ -100,7 +100,7 @@ class Fetcher(RedisClient):
         # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
         self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
         # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
-        self.scheduler.update_period('WorldCup', int(self.rget('period:WC') or 60))
+        self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
         if type == 'AQI':
             rawmessage['values'] = await aqi(self.urls[type], self.timezone)
         elif type == 'Events':

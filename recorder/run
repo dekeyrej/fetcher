@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+KEY=WorldCup \
+PYTHONPATH=./shared \
+HOST_PORT_DB=redis.pjis.net:6379/0 \
+USER_PASS=kvraw:kvraw \
+IN_CHANNEL=raw \
+uv run recorder.py

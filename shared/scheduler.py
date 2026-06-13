@@ -26,9 +26,9 @@ class Scheduler:
         return list(self.config.keys())
     
     def dump_queue(self):
-        logging.info("Current schedule:")
+        print("Current schedule:")
         for type, time in self.queue:
-            logging.info(f"{type.ljust(8)}: {time.format('YYYY-MM-DD HH:mm:ss')}")
+            print(f"{type.ljust(8)}: {time.format('YYYY-MM-DD HH:mm:ss')}")
 
     ## ToDo: 
     def update_period(self, type: str, period: int):
@@ -38,14 +38,20 @@ class Scheduler:
             logging.info(f"Updated period for {type} to {period} seconds")
         elif self.config[type]['period'] < period:
             self.config[type]['period'] = period
-            self.schedule_next_run(type)  # reschedule the next run for this task type with the new period
-            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run")
+            self.schedule_next_run(type, now=None, Reschedule=True)  # reschedule the next run for this task type with the new period
+            logging.info(f"Updated period for {type} to {period} seconds and rescheduling next run")
 
     
-    def schedule_next_run(self, type: str, now: arrow.Arrow = None):
+    def schedule_next_run(self, type: str, now: arrow.Arrow = None, Reschedule: bool = False):
         now = now or arrow.now().to('UTC')
         slot = self.config[type]['slot']
         period = self.config[type]['period']
+
+        if Reschedule:
+            # remove any existing scheduled run for this task type from the queue and reschedule it with the new period
+            logging.debug(self.dump_queue())
+            self.queue = [item for item in self.queue if item[0] != type]  # remove any existing scheduled run for this task type from the queue
+            logging.debug(self.dump_queue())
         
         if self.config[type].get('next_run_time', None) is None:
             if now.second < slot:

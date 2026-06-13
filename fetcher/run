@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+PYTHONPATH=./shared \
+HOST_PORT_DB=redis.pjis.net:6379/0 \
+USER_PASS=fetch:fetch \
+OUT_CHANNEL=raw \
+uv run fetcher.py

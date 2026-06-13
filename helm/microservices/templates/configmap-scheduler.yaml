@@ -26,6 +26,9 @@ data:
     NFL: # works (better than previous, but could still be more efficient)
       slot: 30
       period: 60
+    WorldCup:
+      slot: 35
+      period: 60
     Calendar:
       slot: 45
       period: 900
@@ -34,8 +37,5 @@ data:
     #   period: 600
     Events:
       slot: 55
-      period: 600
-    WorldCup:
-      slot: 35
-      period: 60
+      period: 600   
 {{- end }}

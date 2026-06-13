@@ -246,6 +246,13 @@ apps:
           value: America/New_York
         - name: LIVENESS_PORT
           value: "10255"
+      volumeMounts:
+        - name: wcgroups-volume
+          mountPath: /code/wcgroups.json
+          subPath: wcgroups.json
+      volumes:
+        - name: wcgroups-volume
+          configMap: matrix-wcgroups
     weather:
       enabled: true
       image:
