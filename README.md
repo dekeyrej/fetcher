@@ -10,5 +10,5 @@ Consolidate the fetching of the raw data sources.  This consolidates all of the 
 ## Other significant changes
 - All of the components are now housed in this single repository
 - All of the components share a single [Dockerfile](Dockerfile), and are all built into docker images from a single [build](builder/README.md) process that only builds the conatiners necessary based on source file change dates.
-- All of the YAML files (deployment, service, ingress, etc.) are all linked from the components subdirectory to a central [yaml](yaml) folder
-- (stil in development) A Helm [chart](helm/microservices/) has been created allowing a single call to deploy Redis, fetcher (or repeater), kv-updaters, trasnformers, and the apiserver
+- A Helm [chart](helm/microservices/) has been created allowing a single call to deploy Redis, fetcher (or repeater), kv-updaters, trasnformers, and the apiserver
+- (deprecated) All of the YAML files (deployment, service, ingress, etc.) are all linked from the components subdirectory to a central [yaml](yaml) folder

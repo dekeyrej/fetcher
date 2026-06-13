@@ -1,9 +1,12 @@
+```bash
 sudo apt update
 # sudo apt install curl ca-certificates # if you're running a latemodel ubuntu, these are usually installed
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
+```
 
+```bash
 # sets up the docker repository
 sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
 Types: deb
@@ -13,22 +16,29 @@ Components: stable
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
+```
 
+```bash
 sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl status docker # make sure it's running
 sudo usermod -aG docker ubuntu # add user ubuntu to docker group, doesn't take effect until you logout/login
-exit (logout)
+exit # (logout)
+```
 
-(login)
+```bash
+# (login)
 # make sure you can run docker as ubuntu
 docker run hello-world
 # create the buildx container for 'cool building' (caching, multi-platform)
 docker buildx create --name container --use --driver docker-container
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
+```
 
+```bash
 # login to ghcr.io
 # need a token with 'several permissions'
 export CR_PAT=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 echo $CR_PAT | docker login ghcr.io -u <username> --password-stdin
+```
