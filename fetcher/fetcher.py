@@ -34,7 +34,10 @@ class Fetcher(RedisClient):
         self.scheduler = Scheduler(config_file='scheduler.yaml', notifier=self.dispatcher)
         if self.client is not None:
             # store the configured types in Redis for access by repeaters
-            self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))  
+            self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
+        for type in ['MLB', 'NFL', 'WorldCup']:
+            self.rset(f'period:{type}', self.scheduler.config[type]['period'])  # initialize the period for each task type in Redis for access by the microservices
+            # self.scheduler.schedule_next_run(type)  # schedule the first run for each task type based on the configuration
 
     def read_secrets(self) -> dict:
         """ Read secrets from a file, Vault, Kubernetes, or environment variables. """
@@ -131,7 +134,11 @@ class Fetcher(RedisClient):
             logging.info(orjson.dumps(rawmessage))
 
     async def run(self):
-        await self.scheduler.run()
+        try:
+            await self.scheduler.run()
+        except Exception as e:
+            logging.error(f"Error in fetcher run loop: {e}")
+            raise e
 
 if __name__ == "__main__":
     import asyncio

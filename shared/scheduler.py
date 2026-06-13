@@ -7,7 +7,7 @@ The scheduler will run indefinitely, executing the specified tasks at the approp
 """
 import json
 import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 from time import sleep
 
 import arrow
@@ -32,7 +32,7 @@ class Scheduler:
 
     ## ToDo: 
     def update_period(self, type: str, period: int):
-        ''' Update the period for a given task type in the configuration. (only used for MLB and NFL in the current implementation) '''
+        ''' Update the period for a given task type in the configuration. (used for MLB, NFL, and WorldCup in the current implementation) '''
         if self.config[type]['period'] > period:
             self.config[type]['period'] = period
             logging.info(f"Updated period for {type} to {period} seconds")
@@ -49,9 +49,9 @@ class Scheduler:
 
         if Reschedule:
             # remove any existing scheduled run for this task type from the queue and reschedule it with the new period
-            logging.debug(self.dump_queue())
+            # logging.debug(self.dump_queue())
             self.queue = [item for item in self.queue if item[0] != type]  # remove any existing scheduled run for this task type from the queue
-            logging.debug(self.dump_queue())
+            # logging.debug(self.dump_queue())
         
         if self.config[type].get('next_run_time', None) is None:
             if now.second < slot:
@@ -82,24 +82,28 @@ class Scheduler:
             self.schedule_next_run(type)
         self.dump_queue()
         while True:
-            if len(self.queue) > 0:
-                type, time = self.queue[0]
-                now = arrow.now().to('UTC')
-                logging.debug(f"Current time: {self.now_str(now, True)}")
-                if now >= time:
-                    await self.notifier(type)      # fire the scheduled task
-                    self.schedule_next_run(type, now)   # schedule the next run for this task type
-                    self.queue.pop(0)              # remove the task from the queue
-                sleep_length = self.queue[0][1].timestamp() - arrow.now().to('UTC').timestamp()
-                logging.debug(f"Sleeping for {sleep_length:.2f} seconds")
-                if sleep_length < 0.01:
-                    logging.debug("Sleep length less than 0.01 second, sleeping for 0.01 second to avoid busy loop")
-                    sleep(0.01)
+            try:
+                if len(self.queue) > 0:
+                    type, time = self.queue[0]
+                    now = arrow.now().to('UTC')
+                    logging.debug(f"Current time: {self.now_str(now, True)}")
+                    if now >= time:
+                        await self.notifier(type)           # fire the scheduled task
+                        self.schedule_next_run(type, now)   # schedule the next run for this task type
+                        self.queue.pop(0)                   # remove the task from the queue
+                    sleep_length = self.queue[0][1].timestamp() - arrow.now().to('UTC').timestamp()
+                    logging.debug(f"Sleeping for {sleep_length:.2f} seconds")
+                    if sleep_length < 0.01:
+                        logging.debug("Sleep length less than 0.01 second, sleeping for 0.01 second to avoid busy loop")
+                        sleep(0.01)
+                    else:
+                        sleep(sleep_length)
                 else:
-                    sleep(sleep_length)
-            else:
-                logging.info("No scheduled runs. Sleeping for 30 seconds.")
-                sleep(30)
+                    logging.info("No scheduled runs. Sleeping for 30 seconds.")
+                    sleep(30)
+            except Exception as e:
+                logging.error(f"Error in scheduler run loop: {e}")
+                raise e
             
 if __name__ == "__main__":
     import asyncio

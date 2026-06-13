@@ -25,7 +25,7 @@ class RedisClient(ABC):
         signal.signal(signal.SIGTERM, self.shutdown_service)
         signal.signal(signal.SIGINT,  self.shutdown_service)  # Catches Ctrl+C
         # start liveness probe if LIVENESS_PORT is set in environment variables
-        start_liveness_probe()
+        self.redis_liveness_thread = start_liveness_probe()
 
     def get_redis_url(self) -> str:
         """
@@ -139,6 +139,9 @@ class RedisClient(ABC):
         if self.redis_thread and self.redis_thread.is_alive():
             self.redis_thread.stop()
             logging.info("Stopped Redis pubsub thread.")
+        if self.redis_liveness_thread and self.redis_liveness_thread.is_alive():
+            self.redis_liveness_thread.stop()
+            logging.info("Stopped Redis liveness probe thread.")
         self.client.close()
         if self.prod_client:
             self.prod_client.close()

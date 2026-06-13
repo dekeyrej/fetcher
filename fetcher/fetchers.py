@@ -1,20 +1,22 @@
 import asyncio
-import json
 import logging
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 import arrow
-import orjson
 import httpx
+import orjson
 
-async def fetch(url: str, name: str, now: str, headers: dict=None, raw: bool=False) -> dict:
-    async with httpx.AsyncClient(http2=True) as client:
+async def fetch(url: str, message: str, now: str, headers: dict=None, raw: bool=False) -> dict:
+    async with httpx.AsyncClient(http2=True,) as client:
         # Prefer provided headers and request compressed response
         req_headers = headers or {}
         req_headers["Accept-Encoding"] = "br, gzip, deflate"
         # Perform a simple GET and read the full body
         response = await client.get(url, headers=req_headers)
-        logging.info(f"{name} - response encoding: {response.headers.get('Content-Encoding', '')}, content-type: {response.headers.get('Content-Type', '')}, status code: {response.status_code}, time: {now}")
+        logging.info(f"{message}")
+        logging.debug(f"{message} - response encoding: {response.headers.get('Content-Encoding', '')}, content-type: {response.headers.get('Content-Type', '')}, status code: {response.status_code}, time: {now}")
         body = response.content
         if raw:
             return body

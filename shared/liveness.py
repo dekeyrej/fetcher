@@ -22,6 +22,8 @@ def start_liveness_probe():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         logging.info(f"Liveness probe running on port {port}.")
+        return thread
     else:
         logging.info("LIVENESS_PORT not set or invalid. Liveness probe not started.")
+        return None
     
