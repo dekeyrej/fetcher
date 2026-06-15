@@ -6,8 +6,6 @@ apps:
   repeater:
     enabled: false
   webdisplay:
-    image:
-      tag: latest
     env:
       - name: REACT_APP_API_URL
         value: "http://aragorn.pjis.net/api"

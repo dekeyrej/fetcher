@@ -35,10 +35,13 @@ class Scheduler:
         ''' Update the period for a given task type in the configuration. (used for MLB, NFL, and WorldCup in the current implementation) '''
         if self.config[type]['period'] > period:
             self.config[type]['period'] = period
-            logging.info(f"Updated period for {type} to {period} seconds")
+            # if this works, I can collapse these two cases into one and just check if the period has changed, then update it and reschedule the next run for this task type with the new period
+            self.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
+            logging.info(f"Updated period for {type} to {period} seconds and rescheduling next run")
+            # logging.info(f"Updated period for {type} to {period} seconds")
         elif self.config[type]['period'] < period:
             self.config[type]['period'] = period
-            self.schedule_next_run(type, now=None, Reschedule=True)  # reschedule the next run for this task type with the new period
+            self.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
             logging.info(f"Updated period for {type} to {period} seconds and rescheduling next run")
 
     

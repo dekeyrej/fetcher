@@ -30,6 +30,8 @@ class WCServer(MicroService):
             pre_games = in_games = post_games = 0
             for event in events:
                 game, start_time = self.load_game(event)
+                if game is None:
+                    continue
                 self.print_game(game)
                 values.append(game)
                 status = game['status']
@@ -65,7 +67,10 @@ class WCServer(MicroService):
     def load_game(self, game: dict) -> tuple[dict, str]:
         """ ... """
         values = {}
-        values['id']         = game['id']
+        values['id']         = game.get('id', '')
+        if values['id'] == '':
+            logging.warning(f"Game ID is missing for game: {orjson.dumps(game, option=orjson.OPT_INDENT_2).decode('utf-8')}")
+            return None, None
         start_time           = arrow.get(game['date'],'YYYY-MM-DD[T]HH:mmZ').to(self.timezone)
         values['startTime']  = start_time.format('MM/DD/YYYY h:mm A Z')
         values['seasonType'] = game['season']['slug']
@@ -90,6 +95,7 @@ class WCServer(MicroService):
             prefix = 'home' if i == 0 else 'away'
             values[f'{prefix}id']           = competition['competitors'][i]['team'].get('id', '')
             values[f'{prefix}Abbreviation'] = competition['competitors'][i]['team'].get('abbreviation', '')
+            values[f'{prefix}Name']         = competition['competitors'][i]['team'].get('displayName', '')
             values[f'{prefix}Color']        = competition['competitors'][i]['team'].get('color', '000000')
             values[f'{prefix}Record']       = competition['competitors'][i]['records'][0].get('summary', '')
             values[f'{prefix}Logo']         = competition['competitors'][i]['team'].get('logo', '')
@@ -108,16 +114,20 @@ class WCServer(MicroService):
     def format_detail(self, details: list, hometeam: str) -> list[str]:
         lines = []
         for detail in details:
-            type = detail['type'].get('text', '').replace('Goal - Header', '⚽').replace('Own Goal', '⚽').replace('Goal', '⚽').replace('Yellow Card', '🟨').replace('Red Card', '🟥') # yellow and red square emojis
+            line = {}
+            line['time'] = detail['clock'].get('displayValue', '')
+            type = detail['type'].get('text', '').replace('Goal', '⚽').replace('Scored', '⚽').replace('Yellow Card', '🟨').replace('Red Card', '🟥') # yellow and red square emojis .replace('Goal - Header', '⚽').replace('Own Goal', '⚽')
             name = detail['athletesInvolved'][0].get('shortName', '')
             jersey = detail['athletesInvolved'][0].get('jersey', '')
             team = self.teams.get(detail.get('team', {}).get('id', ''), '')
             if team == hometeam:
-                time = detail['clock'].get('displayValue', '').ljust(6, ' ')
-                line = f"#{jersey.ljust(2)} {type} - {time}"
+                # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
+                line['home'] = f"{name} #{jersey.ljust(2)} {type}"
+                line['away'] = ''
             else:
-                time = detail['clock'].get('displayValue', '').ljust(6, ' ')
-                line = f"         {time} - {type} #{jersey}"
+                # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
+                line['home'] = ''
+                line['away'] = f"{type} {name} #{jersey}"
             lines.append(line)
         return lines
     
@@ -143,7 +153,7 @@ class WCServer(MicroService):
                     lines.append("Summary:")
                     for line in game['summary']:
                         lines.append(line)
-        else:
+        else: # game['status'] == 'post'
             lines.append(f"{game['perioddes'].replace('Full Time - ', 'Final - ').ljust(6)} - Group {game['group']}")
             lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)}     ({game['homeRecord']})")
             lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)}     ({game['awayRecord']})")

@@ -6,8 +6,6 @@ apps:
   repeater:
     enabled: true
   webdisplay:
-    image:
-      tag: latest
     env:
       - name: REACT_APP_API_URL
         value: "http://theoden.pjis.net/api"
