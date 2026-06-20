@@ -25,7 +25,8 @@ class RedisClient(ABC):
         signal.signal(signal.SIGTERM, self.shutdown_service)
         signal.signal(signal.SIGINT,  self.shutdown_service)  # Catches Ctrl+C
         # start liveness probe if LIVENESS_PORT is set in environment variables
-        self.redis_liveness_thread = start_liveness_probe()
+        # start_liveness_probe now returns (server, thread)
+        self.redis_liveness_server, self.redis_liveness_thread = start_liveness_probe()
 
     def get_redis_url(self) -> str:
         """
@@ -119,10 +120,32 @@ class RedisClient(ABC):
             try:
                 while True:
                     time.sleep(1)  # Keep the main thread alive while the pubsub thread is running
+                    # If the pubsub worker thread dies unexpectedly, exit so Kubernetes can restart the pod
+                    if self.redis_thread and not self.redis_thread.is_alive():
+                        logging.error("Redis pubsub thread stopped unexpectedly; shutting down service.")
+                        # Attempt graceful shutdown
+                        try:
+                            self.shutdown_service(signal.SIGTERM, None)
+                        except SystemExit:
+                            raise
+                        except Exception as e:
+                            logging.error(f"Error during shutdown after pubsub thread stopped: {e}")
+                            sys.exit(1)
             except KeyboardInterrupt:
                 logging.info("Stopped listening for messages.")
                 if self.redis_thread:
                     self.redis_thread.stop()
+            except Exception as e:
+                logging.error(f"Exception in listen loop: {e}")
+                if self.redis_thread:
+                    try:
+                        self.redis_thread.stop()
+                    except Exception:
+                        pass
+                pubsub.unsubscribe()
+                pubsub.close()
+                client.close()
+                sys.exit(1)
             finally:
                 pubsub.unsubscribe()
                 pubsub.close()
@@ -139,9 +162,23 @@ class RedisClient(ABC):
         if self.redis_thread and self.redis_thread.is_alive():
             self.redis_thread.stop()
             logging.info("Stopped Redis pubsub thread.")
-        if self.redis_liveness_thread and self.redis_liveness_thread.is_alive():
-            self.redis_liveness_thread.stop()
-            logging.info("Stopped Redis liveness probe thread.")
+        if getattr(self, 'redis_liveness_thread', None) and self.redis_liveness_thread.is_alive():
+            try:
+                if getattr(self, 'redis_liveness_server', None):
+                    # shutdown the HTTPServer serve_forever loop
+                    try:
+                        self.redis_liveness_server.shutdown()
+                        logging.info("Shut down liveness HTTP server.")
+                    except Exception as e:
+                        logging.error(f"Error shutting down liveness HTTP server: {e}")
+                # join the thread to let it exit
+                try:
+                    self.redis_liveness_thread.join(timeout=2)
+                except Exception:
+                    pass
+                logging.info("Stopped Redis liveness probe thread.")
+            except Exception as e:
+                logging.error(f"Error stopping liveness probe: {e}")
         self.client.close()
         if self.prod_client:
             self.prod_client.close()
