@@ -129,7 +129,10 @@ class Fetcher(RedisClient):
 
         if self.client is not None:
             logging.debug(orjson.dumps(rawmessage))
-            self.publish(orjson.dumps(rawmessage))  # publish the data to the redis 'raw' channel
+            if rawmessage['values'] is None and type != 'Events':  # events are read by the events microservice directly from the file, so we can skip fetching them here
+                logging.warning(f"No data fetched for type: {type}")
+            else:
+                self.publish(orjson.dumps(rawmessage))  # publish the data to the redis 'raw' channel
         else:
             logging.info(orjson.dumps(rawmessage))
 

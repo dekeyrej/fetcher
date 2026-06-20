@@ -14,13 +14,17 @@ async def fetch(url: str, message: str, now: str, headers: dict=None, raw: bool=
         req_headers = headers or {}
         req_headers["Accept-Encoding"] = "br, gzip, deflate"
         # Perform a simple GET and read the full body
-        response = await client.get(url, headers=req_headers)
-        logging.info(f"{message}")
-        logging.debug(f"{message} - response encoding: {response.headers.get('Content-Encoding', '')}, content-type: {response.headers.get('Content-Type', '')}, status code: {response.status_code}, time: {now}")
-        body = response.content
-        if raw:
-            return body
-        return orjson.loads(body)
+        try:
+            response = await client.get(url, headers=req_headers)
+            logging.info(f"{message}")
+            logging.debug(f"{message} - response encoding: {response.headers.get('Content-Encoding', '')}, content-type: {response.headers.get('Content-Type', '')}, status code: {response.status_code}, time: {now}")
+            body = response.content
+            if raw:
+                return body
+            return orjson.loads(body)
+        except httpx.RequestError as e:
+            logging.error(f"An error occurred while requesting {url}: {e}")
+            return {}
     
 async def aqi(url: str, timezone: str) -> dict:  # working
     tnow = arrow.now().to(timezone)
