@@ -45,10 +45,10 @@ class WCServer(MicroService):
                         next_start_time = start_time
 
             if game_count == 0 or (in_games == 0 and post_games == game_count): # no games scheduled or all games finished
-                if tnow.hour <= 12:
-                    next_valid = tnow.replace(hour=12,minute=0,second=0) # 12:00 PM today
+                if tnow.hour <= 10:
+                    next_valid = tnow.replace(hour=10,minute=0,second=0) # 10:00 AM today
                 else:
-                    next_valid = tnow.shift(days=+1).replace(hour=12,minute=0,second=0) # 12:00 PM tomorrow
+                    next_valid = tnow.shift(days=+1).replace(hour=10,minute=0,second=0) # 10:00 AM tomorrow
                 self.update_period = (next_valid - tnow).seconds
             elif in_games > 0:  # at least one game in progress, update every 60 seconds
                 # next_valid = \
