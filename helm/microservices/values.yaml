@@ -97,6 +97,8 @@ apps:
     env:
       - name: REACT_APP_API_URL
         value: "http://aragorn.pjis.net/api"
+      - name: REACT_APP_CLUSTER_DASHBOARD_URL
+        value: "https://dashboard.pjis.net/"
     resources:
       requests:
         cpu: 10m

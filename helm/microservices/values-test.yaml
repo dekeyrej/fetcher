@@ -9,6 +9,8 @@ apps:
     env:
       - name: REACT_APP_API_URL
         value: "http://theoden.pjis.net/api"
+      - name: REACT_APP_CLUSTER_DASHBOARD_URL
+        value: "https://testdashboard.pjis.net/"
 ingress:
   apiserver:
     host: theoden.pjis.net
