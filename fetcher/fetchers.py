@@ -16,7 +16,7 @@ async def fetch(url: str, message: str, now: str, headers: dict=None, raw: bool=
         # Perform a simple GET and read the full body
         try:
             response = await client.get(url, headers=req_headers)
-            logging.info(f"{message}")
+            logging.debug(f"{message}")
             logging.debug(f"{message} - response encoding: {response.headers.get('Content-Encoding', '')}, content-type: {response.headers.get('Content-Type', '')}, status code: {response.status_code}, time: {now}")
             body = response.content
             if raw:

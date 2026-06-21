@@ -32,6 +32,7 @@ class Fetcher(RedisClient):
         self.timezone    = os.getenv('TIMEZONE', 'America/New_York')
         # initialize the scheduler with the configuration file and the dispatcher function as the notifier
         self.scheduler = Scheduler(config_file='scheduler.yaml', notifier=self.dispatcher)
+        
         if self.client is not None:
             # store the configured types in Redis for access by repeaters
             self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
@@ -93,7 +94,7 @@ class Fetcher(RedisClient):
         pass
     
     async def dispatcher(self, type: str):
-        logging.info(f"Dispatching fetch for type: {type}")
+        logging.debug(f"Dispatching fetch for type: {type}")
         rawmessage = {
             'type': type,
             'updated': arrow.now().to(self.timezone).format('MM/DD/YYYY h:mm:ss A Z')
@@ -138,12 +139,13 @@ class Fetcher(RedisClient):
 
     async def run(self):
         try:
-            await self.scheduler.run()
+            await self.scheduler.run()  # run the scheduler to manage task execution based on the configured schedule
         except Exception as e:
             logging.error(f"Error in fetcher run loop: {e}")
             raise e
 
 if __name__ == "__main__":
     import asyncio
-
-    asyncio.run(Fetcher(log_level='INFO').run())
+    # import os
+    # log_level = os.getenv('LOG_LEVEL', 'INFO')
+    asyncio.run(Fetcher().run())
