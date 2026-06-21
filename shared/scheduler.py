@@ -65,6 +65,8 @@ class Scheduler:
             logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for {self.config[type]['next_run_time']}(UTC)")
     
     def schedule_next_run(self, type: str, now: arrow.Arrow = None, Reschedule: bool = False):
+        # if Reschedule:
+        #     logging.info(f"Scheduling next run for {type}, with now={self.now_str(now, local=True) if now else 'None'} and Reschedule={Reschedule}")
         now = now or arrow.now().to('UTC')
         slot = self.config[type]['slot']
         period = self.config[type]['period']
@@ -73,19 +75,30 @@ class Scheduler:
             # remove any existing scheduled run for this task type from the queue and reschedule it with the new period
             self.queue = [item for item in self.queue if item[0] != type]  # remove any existing scheduled run for this task type from the queue
         
-        if self.config[type].get('next_run_time', None) is None:
+        if self.config[type].get('next_run_time', None) is None:  ## start-up and when rescheduling after a period update
+            ## schedule for next available slot from _now_
             if now.second < slot:
                 now = now.replace(second=slot, microsecond=0)
             elif now.second < slot + period and period < 60:
                 now = now.replace(second=slot + period, microsecond=0)
             elif now.second < slot + 2 * period and period < 30:
-                now = now.replace(second=slot + 2 * period, microsecond=0)
+                now = now.replace(second=(slot + 2 * period) % 60, microsecond=0)
             elif now.second > slot:
                 now = now.shift(minutes=+1)
                 now = now.replace(second=slot, microsecond=0)
         else:
             now = now.shift(seconds=+period)
-        logging.info(f"Scheduling next run for {type} at {self.now_str(now, local=True)} (in {period} seconds)")
+            ## schedule for next available slot from _now_ + period
+            if now.second < slot:
+                now = now.replace(second=slot, microsecond=0)
+            elif now.second < slot + period and period < 60:
+                now = now.replace(second=slot + period, microsecond=0)
+            elif now.second < slot + 2 * period and period < 30:
+                now = now.replace(second=(slot + 2 * period) % 60, microsecond=0)
+            elif now.second > slot:
+                now = now.shift(minutes=+1)
+                now = now.replace(second=slot, microsecond=0)
+        logging.debug(f"Scheduling next run for {type} at {self.now_str(now, local=True)} (in {period} seconds)")
         self.queue.append((type, now))
         self.queue.sort(key=lambda x: x[1].timestamp())  # sort the queue by next run time
         self.config[type]['next_run_time'] = self.now_str(now)
