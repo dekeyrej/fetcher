@@ -57,16 +57,14 @@ class Scheduler:
         ''' Update the period for a given task type in the configuration. (used for MLB, NFL, and WorldCup in the current implementation) '''
         if self.config[type]['period'] != period:
             logging.debug(f"Updating period for {type} from {self.config[type]['period']} to {period} seconds")
-            if period < 20:
-                logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
-                period = 20  # set a minimum period of 20 seconds to avoid scheduling issues and task execution overlaps
+            if period < 60:
+                logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
+                period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
             self.config[type]['period'] = period
             self.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
             logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for {self.config[type]['next_run_time']}(UTC)")
     
     def schedule_next_run(self, type: str, now: arrow.Arrow = None, Reschedule: bool = False):
-        # if Reschedule:
-        #     logging.info(f"Scheduling next run for {type}, with now={self.now_str(now, local=True) if now else 'None'} and Reschedule={Reschedule}")
         now = now or arrow.now().to('UTC')
         slot = self.config[type]['slot']
         period = self.config[type]['period']
@@ -81,24 +79,16 @@ class Scheduler:
                 now = now.replace(second=slot, microsecond=0)
             elif now.second < slot + period and period < 60:
                 now = now.replace(second=slot + period, microsecond=0)
-            elif now.second < slot + 2 * period and period < 30:
-                now = now.replace(second=(slot + 2 * period) % 60, microsecond=0)
+            elif now.second < slot + 2 * period and period <= 20:  ## _should only be for MLB, but might pop-up for other dynamically scheduled feeds
+                logging.debug("Scheduling for next available slot from now + period, but now is already past the next available slot, so scheduling for the next available slot after that")
+                logging.debug(f"Next available slot: {slot + 2 * period}")
+                now = now.replace(second=slot + 2 * period, microsecond=0)
             elif now.second > slot:
                 now = now.shift(minutes=+1)
                 now = now.replace(second=slot, microsecond=0)
         else:
             now = now.shift(seconds=+period)
-            ## schedule for next available slot from _now_ + period
-            if now.second < slot:
-                now = now.replace(second=slot, microsecond=0)
-            elif now.second < slot + period and period < 60:
-                now = now.replace(second=slot + period, microsecond=0)
-            elif now.second < slot + 2 * period and period < 30:
-                now = now.replace(second=(slot + 2 * period) % 60, microsecond=0)
-            elif now.second > slot:
-                now = now.shift(minutes=+1)
-                now = now.replace(second=slot, microsecond=0)
-        logging.debug(f"Scheduling next run for {type} at {self.now_str(now, local=True)} (in {period} seconds)")
+        logging.info(f"Scheduling next run for {type} at {self.now_str(now, local=True)} (in {period} seconds)")
         self.queue.append((type, now))
         self.queue.sort(key=lambda x: x[1].timestamp())  # sort the queue by next run time
         self.config[type]['next_run_time'] = self.now_str(now)
