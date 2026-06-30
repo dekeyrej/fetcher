@@ -36,8 +36,9 @@ import arrow
 import yaml
 
 class Scheduler:    
-    def __init__(self, config_file: str = "scheduler.yaml", notifier=lambda type: print(f"Running {type}")):
+    def __init__(self, config_file: str = "scheduler.yaml", notifier=lambda type: print(f"Running {type}"), timezone: str = 'America/New_York'):
         self.notifier = notifier
+        self.timezone = timezone
         with open(config_file, 'r') as f:
             self.config = yaml.safe_load(f)
         logging.debug(yaml.dump(self.config, default_flow_style=False, sort_keys=False))
@@ -50,7 +51,7 @@ class Scheduler:
     def dump_queue(self):
         print("Current schedule:")
         for type, time in self.queue:
-            print(f"{type.ljust(8)}: {time.format('YYYY-MM-DD HH:mm:ss')}")
+            print(f"{type.ljust(8)}: {time.to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
 
     ## ToDo: 
     def update_period(self, type: str, period: int):
@@ -58,11 +59,15 @@ class Scheduler:
         if self.config[type]['period'] != period:
             logging.debug(f"Updating period for {type} from {self.config[type]['period']} to {period} seconds")
             if period < 60:
-                logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
-                period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
+                if type == 'MLB':
+                    logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
+                    period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
+                else:
+                    logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
+                    period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
             self.config[type]['period'] = period
             self.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
-            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for {self.config[type]['next_run_time']}(UTC)")
+            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for {arrow.get(self.config[type]['next_run_time']).to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
     
     def schedule_next_run(self, type: str, now: arrow.Arrow = None, Reschedule: bool = False):
         now = now or arrow.now().to('UTC')
@@ -95,7 +100,7 @@ class Scheduler:
     
     def now_str(self, t: arrow.Arrow, local: bool = False) -> str:
         if local:
-            return t.to('America/New_York').format('YYYY-MM-DD HH:mm:ss')
+            return t.to(self.timezone).format('YYYY-MM-DD HH:mm:ss')
         return t.to('UTC').format('YYYY-MM-DD HH:mm:ss')
 
     async def run(self):
@@ -110,10 +115,14 @@ class Scheduler:
                     now = arrow.now().to('UTC')
                     logging.debug(f"Current time: {self.now_str(now, local=True)}")
                     if now >= time:
-                        logging.info(f"Running scheduled task for {type} at {self.now_str(now, local=True)}")
+                        logging.debug(f"Running scheduled task for {type} at {self.now_str(now, local=True)}")
                         await self.notifier(type)           # fire the scheduled task
                         self.queue.pop(0)                   # remove the task from the queue (doing this after scheduling the next run, when the next run is MLB can result in no MLB events scheduled)
                         self.schedule_next_run(type, now)   # schedule the next run for this task type
+                    for type in self.config.keys():
+                        if self.config[type].get('next_run_time', None) is None:
+                            logging.error(f"Task type '{type}' is missing 'next_run_time' in the config. This shouldn't happen -- scheduling next run for {type}.")
+                            self.schedule_next_run(type)
                     sleep_length = self.queue[0][1].timestamp() - arrow.now().to('UTC').timestamp()
                     logging.debug(f"Sleeping for {sleep_length:.2f} seconds")
                     if sleep_length < 0.01:
@@ -121,15 +130,6 @@ class Scheduler:
                         sleep(0.01)
                     else:
                         sleep(sleep_length)
-                else:
-                    logging.info("No scheduled runs. Sleeping for 30 seconds.")
-                    sleep(30)
-                # Check if any type doesn't have a next_run_time in the config (e.g. if it was just added to the config file) and schedule it if so
-                for type in self.config.keys():
-                    if self.config[type].get('next_run_time', None) is None:
-                        logging.error(f"Task type '{type}' is missing 'next_run_time' in the config. This shouldn't happen because the scheduler should schedule the next run for any task type that doesn't have a next_run_time, but just in case, scheduling next run for {type}.")
-                        # logging.info(f"Scheduling next run for {type} as it was just added to the config file")
-                        # self.schedule_next_run(type)
             except Exception as e:
                 logging.error(f"Error in scheduler run loop: {e}")
                 raise e

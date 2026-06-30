@@ -30,9 +30,8 @@ class Fetcher(RedisClient):
         self.headers    = self.build_headers()
         self.secrets = None  # clear secrets from memory after use
         self.timezone    = os.getenv('TIMEZONE', 'America/New_York')
-        # initialize the scheduler with the configuration file and the dispatcher function as the notifier
-        self.scheduler = Scheduler(config_file='scheduler.yaml', notifier=self.dispatcher)
-        
+        # initialize the scheduler with the configuration file, dispatcher function as the notifier and local timezone
+        self.scheduler = Scheduler(config_file='scheduler.yaml', notifier=self.dispatcher, timezone=self.timezone)
         if self.client is not None:
             # store the configured types in Redis for access by repeaters
             self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
@@ -90,7 +89,10 @@ class Fetcher(RedisClient):
         return headers
 
     def message_handler(self, message) -> None:
-        """ No incoming messages to handle for this microservice, so we can just pass here."""
+        """ 
+        Abstract method for handling incoming Redis pubsub messages. 
+        No incoming messages to handle for this microservice, so we can just pass here.
+        """
         pass
     
     async def dispatcher(self, type: str):
@@ -106,25 +108,25 @@ class Fetcher(RedisClient):
         # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
         self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
         if type == 'AQI':
-            rawmessage['values'] = await aqi(self.urls[type], self.timezone)
+            rawmessage['values'] = await     aqi(self.urls[type], self.timezone)
         elif type == 'Events':
-            rawmessage['values'] = await events()
+            rawmessage['values'] = await  events()
         elif type == 'Track':
-            rawmessage['values'] = await garmin(self.urls[type], self.timezone)
+            rawmessage['values'] = await  garmin(self.urls[type], self.timezone)
         elif type == 'GitHub':
-            rawmessage['values'] = await github(self.urls[type], self.timezone, headers=self.headers['GitHub'], workflowid=self.workflowid)
+            rawmessage['values'] = await  github(self.urls[type], self.timezone, headers=self.headers['GitHub'], workflowid=self.workflowid)
         elif type == 'MLB':
-            rawmessage['values'] = await mlb(self.urls[type], self.timezone) 
+            rawmessage['values'] = await     mlb(self.urls[type], self.timezone) 
         elif type == 'Moon':
-            rawmessage['values'] = await moon(self.urls[type], self.timezone, headers=self.headers['Moon'], lat_long=self.lat_long)
+            rawmessage['values'] = await    moon(self.urls[type], self.timezone, headers=self.headers['Moon'], lat_long=self.lat_long)
         elif type == 'Calendar':
-            rawmessage['values'] = await gcal(self.urls[type], self.timezone)
+            rawmessage['values'] = await    gcal(self.urls[type], self.timezone)
         elif type == 'NFL':
-            rawmessage['values'] = await nfl(self.urls[type], self.timezone)  
+            rawmessage['values'] = await     nfl(self.urls[type], self.timezone)  
         elif type == 'Weather':
             rawmessage['values'] = await weather(self.urls[type], self.timezone)
         elif type == 'WorldCup':
-            rawmessage['values'] = await wc(self.urls[type], self.timezone)
+            rawmessage['values'] = await      wc(self.urls[type], self.timezone)
         else:
             logging.error(f"Unknown type: {type}")
 
@@ -146,6 +148,4 @@ class Fetcher(RedisClient):
 
 if __name__ == "__main__":
     import asyncio
-    # import os
-    # log_level = os.getenv('LOG_LEVEL', 'INFO')
     asyncio.run(Fetcher().run())

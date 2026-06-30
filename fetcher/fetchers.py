@@ -82,3 +82,47 @@ async def wc(url: str, timezone: str) -> dict:
     tnow = arrow.now().to(timezone)
     response = await fetch(url,'Fetching World Cup games',tnow.format('MM/DD/YYYY hh:mm A ZZZ'))
     return response['events']
+
+# async def dispatcher(self, type: str):
+#     logging.debug(f"Dispatching fetch for type: {type}")
+#     rawmessage = {
+#         'type': type,
+#         'updated': arrow.now().to(self.timezone).format('MM/DD/YYYY h:mm:ss A Z')
+#     }
+#     # update the period for MLB based on the value set by the mlb.py microservice, defaulting to 20 seconds if not set
+#     self.scheduler.update_period('MLB', int(self.rget('period:MLB') or 20))
+#     # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
+#     self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
+#     # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
+#     self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+#     if type == 'AQI':
+#         rawmessage['values'] = await     aqi(self.urls[type], self.timezone)
+#     elif type == 'Events':
+#         rawmessage['values'] = await  events()
+#     elif type == 'Track':
+#         rawmessage['values'] = await  garmin(self.urls[type], self.timezone)
+#     elif type == 'GitHub':
+#         rawmessage['values'] = await  github(self.urls[type], self.timezone, headers=self.headers['GitHub'], workflowid=self.workflowid)
+#     elif type == 'MLB':
+#         rawmessage['values'] = await     mlb(self.urls[type], self.timezone) 
+#     elif type == 'Moon':
+#         rawmessage['values'] = await    moon(self.urls[type], self.timezone, headers=self.headers['Moon'], lat_long=self.lat_long)
+#     elif type == 'Calendar':
+#         rawmessage['values'] = await    gcal(self.urls[type], self.timezone)
+#     elif type == 'NFL':
+#         rawmessage['values'] = await     nfl(self.urls[type], self.timezone)  
+#     elif type == 'Weather':
+#         rawmessage['values'] = await weather(self.urls[type], self.timezone)
+#     elif type == 'WorldCup':
+#         rawmessage['values'] = await      wc(self.urls[type], self.timezone)
+#     else:
+#         logging.error(f"Unknown type: {type}")
+
+#     if self.client is not None:
+#         logging.debug(orjson.dumps(rawmessage))
+#         if rawmessage['values'] is None and type != 'Events':  # events are read by the events microservice directly from the file, so we can skip fetching them here
+#             logging.warning(f"No data fetched for type: {type}")
+#         else:
+#             self.publish(orjson.dumps(rawmessage))  # publish the data to the redis 'raw' channel
+#     else:
+#         logging.info(orjson.dumps(rawmessage))
