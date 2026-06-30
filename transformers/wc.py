@@ -81,10 +81,12 @@ class WCServer(MicroService):
         logging.debug(f"Teams: {self.teams}")
         if values['seasonType'] == 'group-stage':
             values['group'] = self.wcgroups.get(game['competitions'][0]['competitors'][0]['team'].get('abbreviation', ''), '')
-        values.update(self.team_values_and_scores(game['competitions'][0]))
+        else:
+            values['group'] = ''
+        values.update(self.team_values_and_scores(game['competitions'][0], isGroupStage=(values['seasonType'] == 'group-stage')))
         return values, start_time
     
-    def team_values_and_scores(self, competition: dict) -> dict:
+    def team_values_and_scores(self, competition: dict, isGroupStage: bool) -> dict:
         values = {}
         values['status'] = status           = competition['status']['type']['state'] # pre, in, post
         detail_count = len(competition['details'])
@@ -97,10 +99,13 @@ class WCServer(MicroService):
             values[f'{prefix}Abbreviation'] = competition['competitors'][i]['team'].get('abbreviation', '')
             values[f'{prefix}Name']         = competition['competitors'][i]['team'].get('displayName', '')
             values[f'{prefix}Color']        = competition['competitors'][i]['team'].get('color', '000000')
-            values[f'{prefix}Record']       = competition['competitors'][i]['records'][0].get('summary', '')
+            if isGroupStage:
+                values[f'{prefix}Group'] = self.wcgroups.get(values[f'{prefix}Abbreviation'], '')
+                values[f'{prefix}Record']       = competition['competitors'][i]['records'][0].get('summary', '')
             values[f'{prefix}Logo']         = competition['competitors'][i]['team'].get('logo', '')
             if status in ['in', 'post']:
                 values[f'{prefix}Score']    = competition['competitors'][i]['score']
+                values[f'{prefix}Shootout'] = competition['competitors'][i].get('shootoutScore', 0)
         
         if status in ['in', 'post']:
             values['period']                = competition['status']['period']
@@ -114,20 +119,23 @@ class WCServer(MicroService):
     def format_detail(self, details: list, hometeam: str) -> list[str]:
         lines = []
         for detail in details:
+            # print(f"Detail: {orjson.dumps(detail, option=orjson.OPT_INDENT_2).decode('utf-8')}")
             line = {}
             line['time'] = detail['clock'].get('displayValue', '')
             type = detail['type'].get('text', '').replace('Goal', '⚽').replace('Scored', '⚽').replace('Yellow Card', '🟨').replace('Red Card', '🟥') # yellow and red square emojis .replace('Goal - Header', '⚽').replace('Own Goal', '⚽')
-            name = detail['athletesInvolved'][0].get('shortName', '')
-            jersey = detail['athletesInvolved'][0].get('jersey', '')
-            team = self.teams.get(detail.get('team', {}).get('id', ''), '')
-            if team == hometeam:
-                # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
-                line['home'] = f"{name} #{jersey.ljust(2)} {type}"
-                line['away'] = ''
-            else:
-                # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
-                line['home'] = ''
-                line['away'] = f"{type} {name} #{jersey}"
+            athletes = detail.get('athletesInvolved', [])
+            if len(athletes) > 0:
+                name = athletes[0].get('shortName', '') if athletes else ''
+                jersey = athletes[0].get('jersey', '') if athletes else ''
+                team = self.teams.get(detail.get('team', {}).get('id', ''), '')
+                if team == hometeam:
+                    # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
+                    line['home'] = f"{name} #{jersey.ljust(2)} {type}"
+                    line['away'] = ''
+                else:
+                    # time = detail['clock'].get('displayValue', '').ljust(6, ' ')
+                    line['home'] = ''
+                    line['away'] = f"{type} {name} #{jersey}"
             lines.append(line)
         return lines
     
@@ -137,13 +145,18 @@ class WCServer(MicroService):
         lines = []
         if game['status'] == 'pre':
             start_time = arrow.get(game['startTime'],'MM/DD/YYYY h:mm A Z').to(self.timezone)
-            lines.append(f"Sched  {start_time.to('America/New_York').format('hh:mm A')} - Group {game['group']}")
-            lines.append(f"{game['homeAbbreviation']}               ({game['homeRecord']})")
-            lines.append(f"{game['awayAbbreviation']}               ({game['awayRecord']})")
+            if game['seasonType'] == 'group-stage':
+                lines.append(f"Sched  {start_time.to('America/New_York').format('hh:mm A')} - Group {game['group']}")
+                lines.append(f"{game['homeAbbreviation']}               ({game['homeRecord']})")
+                lines.append(f"{game['awayAbbreviation']}               ({game['awayRecord']})")
+            else:
+                lines.append(f"Sched  {start_time.to('America/New_York').format('hh:mm A')}")
+                lines.append(f"{game['homeAbbreviation']}")
+                lines.append(f"{game['awayAbbreviation']}")
         elif game['status'] == 'in':
             lines.append(f"{game['perioddes']}")
-            lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)}")  # \N{REGIONAL INDICATOR SYMBOL LETTER U}\N{REGIONAL INDICATOR SYMBOL LETTER S}
-            lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)}")  # \N{REGIONAL INDICATOR SYMBOL LETTER P}\N{REGIONAL INDICATOR SYMBOL LETTER A}
+            lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)} {'' if game.get('homeShootout', 0) == 0 else f'({game["homeShootout"]})'}")  # \N{REGIONAL INDICATOR SYMBOL LETTER U}\N{REGIONAL INDICATOR SYMBOL LETTER S}
+            lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)} {'' if game.get('awayShootout', 0) == 0 else f'({game["awayShootout"]})'}")  # \N{REGIONAL INDICATOR SYMBOL LETTER P}\N{REGIONAL INDICATOR SYMBOL LETTER A}
             if 'summary' in game:
                 if len(game['summary']) > 3:
                     lines.append(f"Summary (showing last 3 of {len(game['summary'])}):")
@@ -154,9 +167,14 @@ class WCServer(MicroService):
                     for line in game['summary']:
                         lines.append(line)
         else: # game['status'] == 'post'
-            lines.append(f"{game['perioddes'].replace('Full Time - ', 'Final - ').ljust(6)} - Group {game['group']}")
-            lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)}     ({game['homeRecord']})")
-            lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)}     ({game['awayRecord']})")
+            if game['seasonType'] == 'group-stage':
+                lines.append(f"{game['perioddes'].replace('Full Time - ', 'Final - ').ljust(6)} - Group {game['group']}")
+                lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)}     ({game['homeRecord']})")
+                lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)}     ({game['awayRecord']})")
+            else:
+                lines.append(f"{game['perioddes'].replace('Full Time - ', 'Final - ').ljust(6)}")
+                lines.append(f"{game['homeAbbreviation']}   {game['homeScore'].rjust(7)} {'' if game.get('homeShootout', 0) == 0 else f'({game["homeShootout"]})'}")
+                lines.append(f"{game['awayAbbreviation']}   {game['awayScore'].rjust(7)} {'' if game.get('awayShootout', 0) == 0 else f'({game["awayShootout"]})'}")
             if 'summary' in game:
                 lines.append("Summary:")
                 for line in game['summary']:
