@@ -59,7 +59,7 @@ class Scheduler:
         if self.config[type]['period'] != period:
             logging.debug(f"Updating period for {type} from {self.config[type]['period']} to {period} seconds")
             if period < 60:
-                if type == 'MLB':
+                if type == 'MLB' and period < 20:
                     logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
                     period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
                 else:

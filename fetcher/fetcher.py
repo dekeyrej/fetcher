@@ -101,12 +101,7 @@ class Fetcher(RedisClient):
             'type': type,
             'updated': arrow.now().to(self.timezone).format('MM/DD/YYYY h:mm:ss A Z')
         }
-        # update the period for MLB based on the value set by the mlb.py microservice, defaulting to 20 seconds if not set
-        self.scheduler.update_period('MLB', int(self.rget('period:MLB') or 20))
-        # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
-        self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
-        # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
-        self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+        
         if type == 'AQI':
             rawmessage['values'] = await     aqi(self.urls[type], self.timezone)
         elif type == 'Events':
@@ -130,6 +125,13 @@ class Fetcher(RedisClient):
         else:
             logging.error(f"Unknown type: {type}")
 
+        # update the period for MLB based on the value set by the mlb.py microservice, defaulting to 20 seconds if not set
+        self.scheduler.update_period('MLB', int(self.rget('period:MLB') or 20))
+        # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
+        self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
+        # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
+        self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+        
         if self.client is not None:
             logging.debug(orjson.dumps(rawmessage))
             if rawmessage['values'] is None and type != 'Events':  # events are read by the events microservice directly from the file, so we can skip fetching them here
