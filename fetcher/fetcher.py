@@ -94,6 +94,24 @@ class Fetcher(RedisClient):
         No incoming messages to handle for this microservice, so we can just pass here.
         """
         pass
+
+    ## ToDo: 
+    def update_period(self, type: str, period: int):
+        ''' Update the period for a given task type in the configuration. (currently used for MLB, NFL, and WorldCup) '''
+        if self.scheduler.config[type]['period'] != period:
+            logging.debug(f"Updating period for {type} from {self.scheduler.config[type]['period']} to {period} seconds")
+            if period < 60:
+                if type == 'MLB' and period < 20:
+                    logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
+                    period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
+                else:
+                    logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
+                    period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
+            self.scheduler.set_period(type, period)  # update the period for this task type in the scheduler configuration
+            self.rset(f'period:{type}', period)  # update the period for this task type in Redis for access by the microservices
+            self.scheduler.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
+            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for "
+                         f"{arrow.get(self.scheduler.config[type]['next_run_time']).to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
     
     async def dispatcher(self, type: str):
         logging.debug(f"Dispatching fetch for type: {type}")
@@ -126,11 +144,11 @@ class Fetcher(RedisClient):
             logging.error(f"Unknown type: {type}")
 
         # update the period for MLB based on the value set by the mlb.py microservice, defaulting to 20 seconds if not set
-        self.scheduler.update_period('MLB', int(self.rget('period:MLB') or 20))
+        self.update_period('MLB', int(self.rget('period:MLB') or 20))
         # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
-        self.scheduler.update_period('NFL', int(self.rget('period:NFL') or 60))
+        self.update_period('NFL', int(self.rget('period:NFL') or 60))
         # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
-        self.scheduler.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+        self.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
         
         if self.client is not None:
             logging.debug(orjson.dumps(rawmessage))

@@ -52,23 +52,11 @@ class Scheduler:
         print("Current schedule:")
         for type, time in self.queue:
             print(f"{type.ljust(8)}: {time.to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
-
-    ## ToDo: 
-    def update_period(self, type: str, period: int):
-        ''' Update the period for a given task type in the configuration. (used for MLB, NFL, and WorldCup in the current implementation) '''
-        if self.config[type]['period'] != period:
-            logging.debug(f"Updating period for {type} from {self.config[type]['period']} to {period} seconds")
-            if period < 60:
-                if type == 'MLB' and period < 20:
-                    logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
-                    period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
-                else:
-                    logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
-                    period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
-            self.config[type]['period'] = period
-            self.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
-            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for {arrow.get(self.config[type]['next_run_time']).to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
     
+    def set_period(self, type: str, period: int):
+        ''' Update the period for a given task type in the configuration. (currently used for MLB, NFL, and WorldCup) '''
+        self.config[type]['period'] = period
+
     def schedule_next_run(self, type: str, now: arrow.Arrow = None, Reschedule: bool = False):
         now = now or arrow.now().to('UTC')
         slot = self.config[type]['slot']
@@ -93,6 +81,22 @@ class Scheduler:
                 now = now.replace(second=slot, microsecond=0)
         else:
             now = now.shift(seconds=+period)
+            if type == 'MLB' and period == 20:
+                seconds = now.second
+                if seconds == 0:
+                    now = now.replace(microsecond=0)
+                elif seconds <= 20:
+                    now = now.replace(second=20, microsecond=0)
+                elif seconds <= 40:
+                    now = now.replace(second=40, microsecond=0)
+            else:## schedule for next available slot from _now_ + period
+                if now.second < slot:
+                    now = now.replace(second=slot, microsecond=0)
+                elif now.second <= slot + period and period < 60:
+                    now = now.replace(second=slot + period, microsecond=0)
+                elif now.second > slot:
+                    now = now.shift(minutes=+1)
+                    now = now.replace(second=slot, microsecond=0)
         logging.info(f"Scheduling next run for {type} at {self.now_str(now, local=True)} (in {period} seconds)")
         self.queue.append((type, now))
         self.queue.sort(key=lambda x: x[1].timestamp())  # sort the queue by next run time
@@ -137,8 +141,10 @@ class Scheduler:
 if __name__ == "__main__":
     import asyncio
 
+    timezone = 'America/New_York'
+
     def output(type):
-        logging.info(f"Running {type.ljust(8)} at {arrow.now().to('UTC').format('YYYY-MM-DD HH:mm:ss')}")
+        logging.info(f"Running {type.ljust(8)} at {arrow.now().to(timezone).format('YYYY-MM-DD HH:mm:ss')}")
         
-    scheduler = Scheduler(config_file='scheduler.yaml', notifier=output)
+    scheduler = Scheduler(config_file='scheduler.yaml', notifier=output, timezone=timezone)
     asyncio.run(scheduler.run())
