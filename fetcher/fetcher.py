@@ -104,7 +104,7 @@ class Fetcher(RedisClient):
                 if type == 'MLB' and period < 20:
                     logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
                     period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
-                else:
+                elif type in ['NFL', 'WorldCup'] and period < 60:
                     logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
                     period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
             self.scheduler.set_period(type, period)  # update the period for this task type in the scheduler configuration
