@@ -9,7 +9,7 @@ from redis_lib import RedisClient
 from scheduler     import Scheduler
 from secretmanager import SecretManager
 
-from fetchers import aqi, events, garmin, github, mlb, moon, gcal, nfl, weather, wc
+from fetchers import aqi, events, garmin, github, mlb, moon, gcal, nfl, weather #, wc
 
 class Fetcher(RedisClient):
     
@@ -35,7 +35,7 @@ class Fetcher(RedisClient):
         if self.client is not None:
             # store the configured types in Redis for access by repeaters
             self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
-        for type in ['MLB', 'NFL', 'WorldCup']:
+        for type in ['MLB', 'NFL']: #, 'WorldCup']:
             self.rset(f'period:{type}', self.scheduler.config[type]['period'])  # initialize the period for each task type in Redis for access by the microservices
             # self.scheduler.schedule_next_run(type)  # schedule the first run for each task type based on the configuration
 
@@ -73,8 +73,8 @@ class Fetcher(RedisClient):
             'Track': self.secrets.get('garmin_url', 'https://api.garmin.com/wellness-api/rest/activities'),
             'Weather': f'https://api.openweathermap.org/data/3.0/onecall?appid=' \
                        f'{self.secrets["owmkey"]}&{self.lat_long}' \
-                       f'&exclude=minutely,alerts&units=imperial&lang=en',
-            'WorldCup': 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
+                       f'&exclude=minutely,alerts&units=imperial&lang=en' #,
+            #'WorldCup': 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
         }
         return urls
     
@@ -138,8 +138,8 @@ class Fetcher(RedisClient):
             rawmessage['values'] = await     nfl(self.urls[type], self.timezone)  
         elif type == 'Weather':
             rawmessage['values'] = await weather(self.urls[type], self.timezone)
-        elif type == 'WorldCup':
-            rawmessage['values'] = await      wc(self.urls[type], self.timezone)
+        # elif type == 'WorldCup':
+        #     rawmessage['values'] = await      wc(self.urls[type], self.timezone)
         else:
             logging.error(f"Unknown type: {type}")
 
@@ -147,8 +147,8 @@ class Fetcher(RedisClient):
         self.update_period('MLB', int(self.rget('period:MLB') or 20))
         # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
         self.update_period('NFL', int(self.rget('period:NFL') or 60))
-        # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
-        self.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+        # # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
+        # self.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
         
         if self.client is not None:
             logging.debug(orjson.dumps(rawmessage))

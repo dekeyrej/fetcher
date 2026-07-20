@@ -26,6 +26,6 @@ Calendar:
 Events:
   slot: 55
   period: 600
-WorldCup:
-  slot: 35
-  period: 60
+# WorldCup:
+#   slot: 35
+#   period: 60
