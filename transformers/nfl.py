@@ -54,15 +54,11 @@ class NFLServer(MicroService):
                     if tnow <= start_time < next_start_time:
                         next_start_time = start_time
                 
-            values['events'] = events
+            values['events'] = sorted(events, key=lambda x: arrow.get(x['fulldate']))
 
-            if status == 'in' or (status == 'pre' and start_time < tnow):  ### tnow have to account for postponed :-/
+            # if there are any in-progress games, set the update period to 60 seconds
+            if in_games > 0:
                 self.update_period = 60
-            # elif status == 'pre':
-            #     # if self.output: print(f'   in pre   {id}')
-            #     if tnow <= start_time < next_start_time:
-            #         # if self.output: print(f'      in next_start {id}')
-            #         next_start_time = start_time
             else:
                 self.update_period = 15 * 60
 
@@ -75,8 +71,9 @@ class NFLServer(MicroService):
     def read_event(self, event):
         """ ... """
         game = {}
-        game['date']  = arrow.get(event['date']).to(self.timezone).format('ddd h:mm A')
-        game['fulldate']  = event['date']
+        date = arrow.get(event['date']).to(self.timezone)
+        game['date']  = date.format('ddd h:mm A')
+        game['fulldate']  = date.format('YYYY-MM-DD HH:mm:ss')
         game['week']  = event['week']['number']
         game['state'] = event['competitions'][0]['status']['type']['state']   # 'pre', 'in', 'post'
         home          = event['competitions'][0]['competitors'][0]
@@ -120,22 +117,12 @@ class NFLServer(MicroService):
             except:
                 print("exception in stat")
             situ = event['competitions'][0]['situation']
-            try:
-                if situ['possession'] == game['homeid']:
-                    # print('home')
-                    game['possession'] = game['homeabrv']  # who is in posession
-                    # print(f"{game['homeabrv']} has the ball...")
-                else:
-                    # print(away)
-                    game['possession'] = game['awayabrv']
-                    # print(f"{game['awayabrv']} has the ball...")
-                logging.debug(f"{game['possession']} has the ball.")
-                game['position']       = situ.get('possessionText',"")
-                game['downandyardage'] = situ.get('shortDownDistanceText',"")
-                game['lastplay']       = situ['lastPlay']['type'].get('text',"")
-            except:
-                # game['possession'] = ""
-                logging.error("exception in situ")
+            game['position']       = situ.get('possessionText',"")
+            game['downandyardage'] = situ.get('shortDownDistanceText',"")
+            game['downyardsposition'] = situ.get('downDistanceText',"")
+            possession = situ.get('possession', None)   
+            if possession:
+                game['possession'] = game['homeabrv'] if possession == game['homeid'] else game['awayabrv']
         return game
 
 if __name__ == '__main__':
