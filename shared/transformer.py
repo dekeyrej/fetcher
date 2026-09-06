@@ -8,7 +8,7 @@ import orjson
 
 from redis_lib import RedisClient
 
-class MicroService(RedisClient):
+class Transformer(RedisClient):
     def __init__(self, log_level: str = 'INFO'):
         super().__init__(redis_url=None)
         logging.getLogger().setLevel(getattr(logging, log_level.upper(), logging.INFO))

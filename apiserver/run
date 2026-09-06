@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+HOST_PORT_DB=redis.pjis.net:6379/0 \
+USER_PASS=apiserver:apiserver \
+uv run apiserver.py

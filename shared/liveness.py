@@ -10,6 +10,10 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b'{"status":"alive"}')
+        elif self.path == '/ready':
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status":"ready"}')
         else:
             self.send_response(404)
             self.end_headers()

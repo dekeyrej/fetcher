@@ -5,9 +5,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 import arrow
 
-from microservice import MicroService
+from transformer import Transformer
 
-class MoonServer(MicroService):
+class MoonServer(Transformer):
     """ subclass of ServerPage to fetch sun and moon data """
     def __init__(self):
         super().__init__()
@@ -28,52 +28,53 @@ class MoonServer(MicroService):
             moon_data = [
                 updatedata[i]['properties'] for i in range(2,4)
             ]
-            phase, illumstr = self.moon_condition(moon_data[0]['moonphase'])
+            phase, illumstr = self._moon_condition(moon_data[0]['moonphase'])
 
             values = {
                 'phase': phase,
                 'illumstr': illumstr,
-                'sunevent': self.sun_event(sun_data, arrow.now().format('X')),
-                'moonevent': self.moon_event(moon_data)
+                'sunevent': self._sun_event(sun_data, arrow.now().format('X')),
+                'moonevent': self._moon_event(moon_data)
             }
             logging.info(f'{type(self).__name__} updated.')
         return values
 
-    def moon_condition(self, moonphase: float) -> tuple[int, float]:
+    def _moon_condition(self, moonphase: float) -> tuple[int, float]:
         """ convert moonphase to an integer phase (index of phase image) and an illumination %
             moonphase values seem to be in the range 0.0..359.99
         """
         phase     =              int(moonphase / 3.6 ) % 100  # => 0..99
-        illum     = self.age_to_illum(moonphase / 360)        # => 0.0..1.0
+        illum     = self._age_to_illum(moonphase / 360)        # => 0.0..1.0
         return phase, illum
 
-    def sun_event(self, mnd: list, tstmp) -> str:
+    def _sun_event(self, mnd: list, tstmp) -> str:
         """ determine the next sun event (sunrise or sunset) """
         # sunrise and sunset happen every day - easier
-        sunrise   = self.parse_time(mnd[0]['sunrise']['time'])
-        sunset    = self.parse_time(mnd[0]['sunset']['time'])
-        tomorrow_sunrise = self.parse_time(mnd[1]['sunrise']['time'])
+        sunrise   = self._parse_time(mnd[0]['sunrise']['time'])
+        sunset    = self._parse_time(mnd[0]['sunset']['time'])
+        tomorrow_sunrise = self._parse_time(mnd[1]['sunrise']['time'])
         # determine which sun event is next
         # print(type(tstmp))
         # print(type(sunrise))
         if tstmp <= sunrise:
-            event = f"Sunrise:  {self.ts2hhmm(sunrise)}"
+            event = f"Sunrise:  {self._ts2hhmm(sunrise)}"
         elif tstmp <= sunset:
-            event = f"Sunset:   {self.ts2hhmm(sunset)}"
+            event = f"Sunset:   {self._ts2hhmm(sunset)}"
         else:
-            event = f"Sunrise:  {self.ts2hhmm(tomorrow_sunrise)}"
+            event = f"Sunrise:  {self._ts2hhmm(tomorrow_sunrise)}"
         return event
 
-    def moon_event(self, mnd: list) -> str:
+    def _moon_event(self, mnd: list) -> str:
         """Determine the next moon event (moonrise or moonset)"""
         events = []
+        next_event = None
 
         for day in mnd[:2]:
             if 'moonrise' in day and day['moonrise']['time'] is not None:
-                moon_rise = self.parse_time(day['moonrise']['time'])
+                moon_rise = self._parse_time(day['moonrise']['time'])
                 events.append(('Rise', moon_rise))
             if 'moonset' in day and day['moonset']['time'] is not None:
-                moon_set = self.parse_time(day['moonset']['time'])
+                moon_set = self._parse_time(day['moonset']['time'])
                 events.append(('Set', moon_set))
 
         # Sort the events by time and find the next event
@@ -85,10 +86,13 @@ class MoonServer(MicroService):
                 next_event = (event_type, event_time)
                 break
 
-        event_str = f"Moonrise: {self.ts2hhmm(next_event[1])}" if next_event[0] == 'Rise' else f"Moonset:  {self.ts2hhmm(next_event[1])}"
+        if next_event is None:
+            return "No upcoming moon events"
+        
+        event_str = f"Moonrise: {self._ts2hhmm(next_event[1])}" if next_event[0] == 'Rise' else f"Moonset:  {self._ts2hhmm(next_event[1])}"
         return event_str
 
-    def age_to_illum(self, age: int) -> float:
+    def _age_to_illum(self, age: int) -> float:
         """ convert age (0..100) to a percent illumination """
         if age <= 0.5:
             illum = (1 - cos(age * 2 * pi)) * 50
@@ -96,11 +100,11 @@ class MoonServer(MicroService):
             illum = (1 + cos((age - 0.5) * 2 * pi)) * 50
         return f'{illum:.1f}%'
 
-    def parse_time(self, timestr: str) -> arrow:
+    def _parse_time(self, timestr: str) -> arrow:
         """ converts a timestamp string into an arrow (a string?) """
         return arrow.get(timestr).format('X')
 
-    def ts2hhmm(self, tstmp: str) -> str:
+    def _ts2hhmm(self, tstmp: str) -> str:
         """ converts a timestamp into an arrow and returns either a
             12-hr time, or a 24-hr time
         """

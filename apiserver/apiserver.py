@@ -8,16 +8,16 @@ It uses the `sse_starlette` library for handling SSE and `redis.asyncio` for asy
 kubectl rollout restart -n default deployment apiserver
 """
 import asyncio
-import orjson
 import logging
 import os
 
-from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sse_starlette.sse import EventSourceResponse
+import orjson
 import redis.asyncio as aioredis
+from sse_starlette.sse import EventSourceResponse
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

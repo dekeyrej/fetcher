@@ -26,6 +26,6 @@ Calendar:
 Events:
   slot: 55
   period: 600
-# WorldCup:
+# WorldCup:  # only needed every four years
 #   slot: 35
 #   period: 60

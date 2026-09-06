@@ -2,9 +2,9 @@
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-from microservice import MicroService
+from transformer import Transformer
 
-class CalendarServer(MicroService):
+class CalendarServer(Transformer):
     """ Subclass of MicroService for reading calendar events """
     def __init__(self):
         super().__init__()

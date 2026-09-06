@@ -5,9 +5,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 import arrow
 import orjson
 
-from microservice import MicroService
+from transformer import Transformer
 
-class WCServer(MicroService):
+class WCServer(Transformer):
     """ ... """
     def __init__(self):
         super().__init__()

@@ -1,7 +1,7 @@
 Dockerfile: all
 shared/__init__.py: all
 shared/liveness.py: all
-shared/microservice.py: all
+shared/transformer.py: all
 shared/redis_lib.py: all
 shared/scheduler.py: fetcher
 fetcher/fetcher.py: fetcher

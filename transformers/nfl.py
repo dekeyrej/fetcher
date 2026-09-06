@@ -8,9 +8,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 import arrow
 
-from microservice import MicroService
+from transformer import Transformer
 
-class NFLServer(MicroService):
+class NFLServer(Transformer):
 
     active: int
     update_period: int
@@ -42,7 +42,7 @@ class NFLServer(MicroService):
             game_count = len(games)
             pre_games = in_games = post_games = 0
             for game in games:
-                events.append(self.read_event(game))
+                events.append(self._read_event(game))
                 start_time = arrow.get(game['date']).to(self.timezone)
                 status = game['competitions'][0]['status']['type']['state']
                 if status == 'post':
@@ -68,7 +68,7 @@ class NFLServer(MicroService):
             logging.info(f'{type(self).__name__} updated. Next update period: {self.update_period} seconds.')
             return values
 
-    def read_event(self, event):
+    def _read_event(self, event):
         """ ... """
         game = {}
         date = arrow.get(event['date']).to(self.timezone)

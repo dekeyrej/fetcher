@@ -4,9 +4,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 import arrow
 
-from microservice import MicroService
+from transformer import Transformer
 
-class MLBServer(MicroService):
+class MLBServer(Transformer):
     """ ... """
     def __init__(self):
         super().__init__()
@@ -25,7 +25,7 @@ class MLBServer(MicroService):
             game_count = len(events)
             pre_games = in_games = post_games = 0
             for event in events:
-                game, start_time = self.load_game(event)
+                game, start_time = self._load_game(event)
                 values.append(game)
                 # start_times.append(start_time)
                 status = game['status']
@@ -57,17 +57,17 @@ class MLBServer(MicroService):
             logging.info(f'{type(self).__name__} updated. Next update period: {self.update_period} seconds.')
             return values
 
-    def load_game(self, game: dict) -> tuple[dict, str]:
+    def _load_game(self, game: dict) -> tuple[dict, str]:
         """ ... """
         values = {}
         values['id']         = game['id']
         start_time           = arrow.get(game['date'],'YYYY-MM-DD[T]HH:mmZ').to(self.timezone)
         values['startTime']  = start_time.format('MM/DD/YYYY h:mm A Z')
         values['seasonType'] = game['season']['slug']
-        values.update(self.team_values_and_scores(game['competitions'][0]))
+        values.update(self._team_values_and_scores(game['competitions'][0]))
         return values, start_time
     
-    def team_values_and_scores(self, competition: dict) -> dict:
+    def _team_values_and_scores(self, competition: dict) -> dict:
         values = {}
         
         values['status'] = status           = competition['status']['type']['state'] # pre, in, post

@@ -3,9 +3,9 @@ import json
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-from microservice import MicroService
+from transformer import Transformer
 
-class NextEvent(MicroService):
+class NextEvent(Transformer):
     """ ... """
     def __init__(self):
         super().__init__()

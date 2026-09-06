@@ -73,8 +73,8 @@ class Fetcher(RedisClient):
             'Track': self.secrets.get('garmin_url', 'https://api.garmin.com/wellness-api/rest/activities'),
             'Weather': f'https://api.openweathermap.org/data/3.0/onecall?appid=' \
                        f'{self.secrets["owmkey"]}&{self.lat_long}' \
-                       f'&exclude=minutely,alerts&units=imperial&lang=en' #,
-            #'WorldCup': 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
+                       f'&exclude=minutely,alerts&units=imperial&lang=en',
+            'WorldCup': 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',
         }
         return urls
     
@@ -90,7 +90,7 @@ class Fetcher(RedisClient):
 
     def message_handler(self, message) -> None:
         """ 
-        Abstract method for handling incoming Redis pubsub messages. 
+        Required override of the abstract method for handling incoming Redis pubsub messages. 
         No incoming messages to handle for this microservice, so we can just pass here.
         """
         pass

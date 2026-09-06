@@ -16,19 +16,19 @@ class RedisClient(ABC):
         self.client = self.connect_redis(redis_url)
         self.prod_client = None
         if prod:  # for 'repeater' which listens to prod Redis and publishes to in-cluster Redis
-            prod_redis_url = self.get_prod_redis_url()
+            prod_redis_url = self._get_prod_redis_url()
             self.prod_client = self.connect_redis(prod_redis_url)
         self.in_channel = os.getenv('IN_CHANNEL', '') # for listening, if needed (repeater, kv-updater, transformers)
         self.out_channel = os.getenv('OUT_CHANNEL', '') # for publishing, if needed (fetcher, repeater, transformers)
         self.redis_thread = None
         # Register the OS signals to trigger our shutdown method
-        signal.signal(signal.SIGTERM, self.shutdown_service)
-        signal.signal(signal.SIGINT,  self.shutdown_service)  # Catches Ctrl+C
+        signal.signal(signal.SIGTERM, self._shutdown_service)
+        signal.signal(signal.SIGINT,  self._shutdown_service)  # Catches Ctrl+C
         # start liveness probe if LIVENESS_PORT is set in environment variables
         # start_liveness_probe now returns (server, thread)
         self.redis_liveness_server, self.redis_liveness_thread = start_liveness_probe()
 
-    def get_redis_url(self) -> str:
+    def _get_redis_url(self) -> str:
         """
         Construct the Redis URL from environment variables.
         """
@@ -39,7 +39,7 @@ class RedisClient(ABC):
         logging.debug(f"Constructed Redis URL: {redis_url}")    
         return redis_url
 
-    def get_prod_redis_url(self) -> str:
+    def _get_prod_redis_url(self) -> str:
         """
         Construct the production Redis URL from environment variables.
         """
@@ -55,7 +55,7 @@ class RedisClient(ABC):
         Connect to Redis using the provided URL or environment variables.
         """
         if redis_url is None:
-            redis_url = self.get_redis_url()
+            redis_url = self._get_redis_url()
 
         try:
             r = Redis.from_url(redis_url, decode_responses=True)
@@ -125,7 +125,7 @@ class RedisClient(ABC):
                         logging.error("Redis pubsub thread stopped unexpectedly; shutting down service.")
                         # Attempt graceful shutdown
                         try:
-                            self.shutdown_service(signal.SIGTERM, None)
+                            self._shutdown_service(signal.SIGTERM, None)
                         except SystemExit:
                             raise
                         except Exception as e:
@@ -154,7 +154,7 @@ class RedisClient(ABC):
             logging.warning("No channel specified for listening. Exiting.")
             sys.exit(1)
 
-    def shutdown_service(self, signum, frame):
+    def _shutdown_service(self, signum, frame):
         """
         Handle shutdown signals (SIGTERM, SIGINT) to gracefully stop the service.
         """
