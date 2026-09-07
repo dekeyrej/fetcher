@@ -243,7 +243,7 @@ wheels = [
 
 [[package]]
 name = "dekeyrej-secretmanager"
-version = "1.1.5"
+version = "1.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "hvac" },
@@ -252,9 +252,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/d0/f3fb68d00e794612ceb603f78528aaa6b6e3e2be43dc2d1c9f481eb67a24/dekeyrej_secretmanager-1.1.5.tar.gz", hash = "sha256:8d0fe78064271c68f27256b5a88974822980b786ebeffa955f37ae704cd84968", size = 16856, upload-time = "2025-11-11T21:39:40.446Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/14/4e/3b0cf4e890f00f5893a5aad4fef811dfeec0e03ac3ad2f3c0961b7b786af/dekeyrej_secretmanager-1.1.6.tar.gz", hash = "sha256:d997f80ab35413f25f6b29d061aab90a3b479f77a196bd32487a86a902ffd140", size = 16904, upload-time = "2026-09-07T16:57:18.001Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ff/7c/a2d1b3492dcbafe13f0678c5d9dbbc9453da870e01feed3caa1f7f3547d3/dekeyrej_secretmanager-1.1.5-py3-none-any.whl", hash = "sha256:72f563e3ec783ea724e2e1441063f5f84eab7895c474a4cfb476ad358c0ecd50", size = 14312, upload-time = "2025-11-11T21:39:39.647Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/68/13ab142f57411b8d541170e477777e9eaac3589e6f7a71361c1a27fe02e5/dekeyrej_secretmanager-1.1.6-py3-none-any.whl", hash = "sha256:2685577d29509433ecbac27d8f7ae3fa2a23d2dde10b5c764445cc399714823a", size = 14313, upload-time = "2026-09-07T16:57:17.123Z" },
 ]
 
 [[package]]
@@ -282,7 +282,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arrow", specifier = ">=1.4.0" },
-    { name = "dekeyrej-secretmanager", specifier = ">=1.1.5" },
+    { name = "dekeyrej-secretmanager", specifier = ">=1.1.6" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "orjson", specifier = ">=3.11.9" },
     { name = "pyyaml", specifier = ">=6.0.3" },

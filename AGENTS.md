@@ -12,7 +12,7 @@ Monorepo of Python microservices communicating via Redis channels (`raw` and `up
 
 ## Build & Deployment
 - **Build Process**: Uses a custom "smart builder" in `builder/`.
-  - Command: `python builder/builder.py` (inferred from `builder.py`).
+  - Command: `./build`.
   - Logic: Determines which images to rebuild based on modified files and reverse dependencies.
   - Dockerfile: Single shared `Dockerfile` at root.
 - **Deployment**: Managed via Helm chart in `helm/microservices/`.
