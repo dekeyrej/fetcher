@@ -49,8 +49,14 @@ class Builder:
                         logging.debug(f"{file} is used by all microservices")
                         builds = set(self.microservices.keys())
                         break
-                    logging.debug(f"{file} is used by {microservice}")
-                    builds.add(microservice)
+                    elif microservice == "transformers":
+                        logging.debug(f"{file} is used by all transformers")
+                        for ms, value in self.microservices.items():
+                            if value == "transformers":
+                                builds.add(ms)
+                    else:
+                        logging.debug(f"{file} is used by {microservice}")
+                        builds.add(microservice)
         return builds
     
     def build_microservices(self, builds, repository, tag, all_tags=False):

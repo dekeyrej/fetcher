@@ -1,4 +1,4 @@
-# microservice: application
+# microservice: application/application class (used by Docker)
 apiserver: apiserver
 fetcher: fetcher
 repeater: repeater
