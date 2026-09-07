@@ -62,7 +62,6 @@ By integrating the secretmanager framework, the fetcher achieves the following:
 - All of the components share a single [Dockerfile](Dockerfile), and are all built into docker images from a single [build](builder/README.md) process that only builds the conatiners necessary based on source file change dates.
 - I've added a simple [recorder](recorder) to logs messages of a given type, from either `raw` or `update` to support development/troubleshooting (a WorldCup transformer most recently)
 - A Helm [chart](helm/microservices/) has been created allowing a single call to deploy Redis, fetcher (or repeater), kv-updaters, trasnformers, and the apiserver
-- (deprecated) All of the YAML files (deployment, service, ingress, etc.) are all linked from the components subdirectory to a central [yaml](yaml) folder
 
 ## Python Classes
 

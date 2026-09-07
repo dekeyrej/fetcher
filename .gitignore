@@ -8,3 +8,4 @@ fetch
 recorder/output/
 .vscode/
 */shared
+deprecated/
