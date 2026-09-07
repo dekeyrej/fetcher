@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+PYTHONPATH=./shared \
+PROD_HOST_PORT_DB=redis.pjis.net:6379/0 \
+PROD_USER_PASS=repeat:repeat \
+HOST_PORT_DB=redis.redis:6379/0 \
+USER_PASS=fetch:fetch \
+IN_CHANNEL=raw \
+OUT_CHANNEL=raw \
+uv run repeater.py
