@@ -1,15 +1,26 @@
 import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 import os
 
 import arrow
 import orjson
-
+from fetchers import (
+    aqi,
+    events,
+    garmin,
+    gcal,
+    github,
+    mlb,
+    moon,
+    nfl,
+    wc,
+    weather,
+)
 from redis_lib import RedisClient
-from scheduler     import Scheduler
+from scheduler import Scheduler
 from secretmanager import SecretManager
 
-from fetchers import aqi, events, garmin, github, mlb, moon, gcal, nfl, weather #, wc
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class Fetcher(RedisClient):
     
@@ -22,19 +33,20 @@ class Fetcher(RedisClient):
 
     def __init__(self, log_level: str = 'INFO'):
         super().__init__(redis_url=None)
-        logging.getLogger().setLevel(getattr(logging, log_level.upper(), logging.INFO))
-        self.secrets = self.read_secrets()
+        logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+        self.secrets    = self.read_secrets()
         self.workflowid = self.secrets.get('github_workflow_id', '')
         self.lat_long   = f"lat={self.secrets.get('latitude', '40.7128')}&lon={self.secrets.get('longitude', '-74.0060')}"
         self.urls       = self.build_urls()
         self.headers    = self.build_headers()
-        self.secrets = None  # clear secrets from memory after use
-        self.timezone    = os.getenv('TIMEZONE', 'America/New_York')
+        self.secrets    = None  # clear secrets from memory after use
+        self.timezone   = os.getenv('TIMEZONE', 'America/New_York')
         # initialize the scheduler with the configuration file, dispatcher function as the notifier and local timezone
         self.scheduler = Scheduler(config_file='scheduler.yaml', notifier=self.dispatcher, timezone=self.timezone)
         if self.client is not None:
             # store the configured types in Redis for access by repeaters
-            self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
+            # self.rset(f'{self.out_channel}:types', orjson.dumps(self.scheduler.configured_types()))
+            self.rset('repeater:types', orjson.dumps(self.scheduler.configured_types()))
         for type in ['MLB', 'NFL']: #, 'WorldCup']:
             self.rset(f'period:{type}', self.scheduler.config[type]['period'])  # initialize the period for each task type in Redis for access by the microservices
             # self.scheduler.schedule_next_run(type)  # schedule the first run for each task type based on the configuration
@@ -50,11 +62,11 @@ class Fetcher(RedisClient):
         try:
             read_result = sm.execute(secretcfg.get("SOURCE"), "READ", sm, secretdef)
             if read_result.get("status") == "success":
-                logging.debug("Secrets retrieved successfully.")
+                logger.debug("Secrets retrieved successfully.")
             else:
-                logging.error(f"Failed to retrieve secrets: {read_result.get('error', 'Unknown error')}")
+                logger.error(f"Failed to retrieve secrets: {read_result.get('error', 'Unknown error')}")
         except Exception as e:
-            logging.error(f"An error occurred: {e}")
+            logger.error(f"An error occurred: {e}")
         sm.execute(secretcfg.get("SOURCE"), "LOGOUT", sm)
         del sm  # Clean up the SecretManager instance
         return read_result.get('data', {})
@@ -93,77 +105,78 @@ class Fetcher(RedisClient):
         Required override of the abstract method for handling incoming Redis pubsub messages. 
         No incoming messages to handle for this microservice, so we can just pass here.
         """
-        pass
+        # pass
 
     ## ToDo: 
     def update_period(self, type: str, period: int):
         ''' Update the period for a given task type in the configuration. (currently used for MLB, NFL, and WorldCup) '''
         if self.scheduler.config[type]['period'] != period:
-            logging.debug(f"Updating period for {type} from {self.scheduler.config[type]['period']} to {period} seconds")
+            logger.debug(f"Updating period for {type} from {self.scheduler.config[type]['period']} to {period} seconds")
             if period < 60:
                 if type == 'MLB' and period < 20:
-                    logging.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
+                    logger.warning(f"Period for {type} is less than 20 seconds. This may cause issues with scheduling and task execution.")
                     period = 20  # set a minimum period of 20 seconds for MLB to avoid scheduling issues and task execution overlaps
                 elif type in ['NFL', 'WorldCup'] and period < 60:
-                    logging.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
+                    logger.warning(f"Period for {type} is less than 60 seconds. This may cause issues with scheduling and task execution.")
                     period = 60  # set a minimum period of 60 seconds to avoid scheduling issues and task execution overlaps
             self.scheduler.set_period(type, period)  # update the period for this task type in the scheduler configuration
             self.rset(f'period:{type}', period)  # update the period for this task type in Redis for access by the microservices
             self.scheduler.schedule_next_run(type, Reschedule=True)  # reschedule the next run for this task type with the new period
-            logging.info(f"Updated period for {type} to {period} seconds and rescheduled next run for "
+            logger.info(f"Updated period for {type} to {period} seconds and rescheduled next run for "
                          f"{arrow.get(self.scheduler.config[type]['next_run_time']).to(self.timezone).format('YYYY-MM-DD HH:mm:ss')}")
     
     async def dispatcher(self, type: str):
-        logging.debug(f"Dispatching fetch for type: {type}")
+        logger.debug(f"Dispatching fetch for type: {type}")
         rawmessage = {
             'type': type,
             'updated': arrow.now().to(self.timezone).format('MM/DD/YYYY h:mm:ss A Z')
         }
         
-        if type == 'AQI':
-            rawmessage['values'] = await     aqi(self.urls[type], self.timezone)
-        elif type == 'Events':
-            rawmessage['values'] = await  events()
-        elif type == 'Track':
-            rawmessage['values'] = await  garmin(self.urls[type], self.timezone)
-        elif type == 'GitHub':
-            rawmessage['values'] = await  github(self.urls[type], self.timezone, headers=self.headers['GitHub'], workflowid=self.workflowid)
-        elif type == 'MLB':
-            rawmessage['values'] = await     mlb(self.urls[type], self.timezone) 
-        elif type == 'Moon':
-            rawmessage['values'] = await    moon(self.urls[type], self.timezone, headers=self.headers['Moon'], lat_long=self.lat_long)
-        elif type == 'Calendar':
-            rawmessage['values'] = await    gcal(self.urls[type], self.timezone)
-        elif type == 'NFL':
-            rawmessage['values'] = await     nfl(self.urls[type], self.timezone)  
-        elif type == 'Weather':
-            rawmessage['values'] = await weather(self.urls[type], self.timezone)
-        # elif type == 'WorldCup':
-        #     rawmessage['values'] = await      wc(self.urls[type], self.timezone)
-        else:
-            logging.error(f"Unknown type: {type}")
+        match type:
+            case 'AQI':
+                rawmessage['values'] = await aqi(self.urls[type], self.timezone)
+            case 'Events':
+                rawmessage['values'] = await events()
+            case 'Track':
+                rawmessage['values'] = await garmin(self.urls[type], self.timezone)
+            case 'GitHub':
+                rawmessage['values'] = await github(self.urls[type], self.timezone, headers=self.headers['GitHub'], workflowid=self.workflowid)
+            case 'MLB':
+                rawmessage['values'] = await mlb(self.urls[type], self.timezone)
+            case 'Moon':
+                rawmessage['values'] = await moon(self.urls[type], self.timezone, headers=self.headers['Moon'], lat_long=self.lat_long)
+            case 'Calendar':
+                rawmessage['values'] = await gcal(self.urls[type], self.timezone)
+            case 'NFL':
+                rawmessage['values'] = await nfl(self.urls[type], self.timezone)
+            case 'Weather':
+                rawmessage['values'] = await weather(self.urls[type], self.timezone)
+            case 'WorldCup':
+                rawmessage['values'] = await wc(self.urls[type], self.timezone)
+            case _:
+                logger.error(f"Unknown type: {type}")
 
         # update the period for MLB based on the value set by the mlb.py microservice, defaulting to 20 seconds if not set
-        self.update_period('MLB', int(self.rget('period:MLB') or 20))
+        self.update_period('MLB', int(self.rget('period:MLB') or 20)) if 'MLB' in self.scheduler.configured_types() else None
         # update the period for NFL based on the value set by the nfl.py microservice, defaulting to 60 seconds if not set
-        self.update_period('NFL', int(self.rget('period:NFL') or 60))
-        # # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
-        # self.update_period('WorldCup', int(self.rget('period:WorldCup') or 60))
+        self.update_period('NFL', int(self.rget('period:NFL') or 60)) if 'NFL' in self.scheduler.configured_types() else None
+        # update the period for World Cup based on the value set by the wc.py microservice, defaulting to 60 seconds if not set
+        self.update_period('WorldCup', int(self.rget('period:WorldCup') or 60)) if 'WorldCup' in self.scheduler.configured_types() else None
         
         if self.client is not None:
-            logging.debug(orjson.dumps(rawmessage))
+            logger.debug(orjson.dumps(rawmessage))
             if rawmessage['values'] is None and type != 'Events':  # events are read by the events microservice directly from the file, so we can skip fetching them here
-                logging.warning(f"No data fetched for type: {type}")
+                logger.warning(f"No data fetched for type: {type}")
             else:
                 self.publish(orjson.dumps(rawmessage))  # publish the data to the redis 'raw' channel
         else:
-            logging.info(orjson.dumps(rawmessage))
+            logger.info(orjson.dumps(rawmessage))
 
     async def run(self):
         try:
             await self.scheduler.run()  # run the scheduler to manage task execution based on the configured schedule
         except Exception as e:
-            logging.error(f"Error in fetcher run loop: {e}")
+            logger.error(f"Error in fetcher run loop: {e}")
             raise e
 
 if __name__ == "__main__":
