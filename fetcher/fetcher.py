@@ -19,7 +19,7 @@ from redis_lib import RedisClient
 from scheduler import Scheduler
 from secretmanager import SecretManager
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 class Fetcher(RedisClient):

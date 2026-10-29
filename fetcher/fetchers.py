@@ -7,7 +7,7 @@ import orjson
 
 logging.getLogger("httpx").setLevel(logging.ERROR)
 logging.getLogger("httpcore").setLevel(logging.ERROR)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 async def fetch(url: str, message: str, now: str, headers: dict[str, str] | None = None, raw: bool=False) -> dict:

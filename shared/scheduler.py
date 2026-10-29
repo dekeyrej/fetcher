@@ -3,17 +3,16 @@ A simple scheduler that runs tasks at specified intervals based on a configurati
 The configuration file should be in YAML format and specify the following for each task type:
 - slot: the second of the minute when the task should run (0-59)
 - period: the interval in seconds between runs of the task
-The scheduler will run indefinitely, executing the specified tasks at the appropriate times.
+The scheduler will run indefinitely, executing the notifier task at the appropriate times.
 """
 
 import json
 import logging
-# from time import sleep
 
 import arrow
 import yaml
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 class Scheduler:    
